@@ -1,0 +1,79 @@
+image: gcr.io/kaniko-project/executor:debug
+
+services:
+  - docker:dind
+
+stages:
+  - build
+  - deploy
+
+build-docker-image:
+  stage: build
+  image:
+    name: gcr.io/kaniko-project/executor:debug
+    entrypoint: [""]
+  script:
+    - mkdir -p /kaniko/.docker
+    - echo "{\"auths\":{\"${CI_REGISTRY}\":{\"auth\":\"$(printf "%s:%s" "${CI_REGISTRY_USER}" "${CI_REGISTRY_PASSWORD}" | base64 | tr -d '\n')\"}}}" > /kaniko/.docker/config.json
+    - >-
+      /kaniko/executor
+      --context "${CI_PROJECT_DIR}/frontend/app"
+      --dockerfile "${CI_PROJECT_DIR}/docker/frontend.dockerfile"
+      --target "deploy"
+      --force
+      --destination "${CI_REGISTRY_IMAGE}/frontend:${CI_COMMIT_SHORT_SHA}"
+    - >-
+      /kaniko/executor
+      --context "${CI_PROJECT_DIR}/backend"
+      --dockerfile "${CI_PROJECT_DIR}/docker/backend.dockerfile"
+      --target "deploy"
+      --force
+      --destination "${CI_REGISTRY_IMAGE}/backend:${CI_COMMIT_SHORT_SHA}"
+  retry: 2
+  except:
+    refs:
+      - main
+
+build-docker-prod-image:
+  stage: build
+  image:
+    name: gcr.io/kaniko-project/executor:debug
+    entrypoint: [""]
+  script:
+    - mkdir -p /kaniko/.docker
+    - echo "{\"auths\":{\"${CI_REGISTRY}\":{\"auth\":\"$(printf "%s:%s" "${CI_REGISTRY_USER}" "${CI_REGISTRY_PASSWORD}" | base64 | tr -d '\n')\"}}}" > /kaniko/.docker/config.json
+    - >-
+      /kaniko/executor
+      --context "${CI_PROJECT_DIR}/frontend/app"
+      --dockerfile "${CI_PROJECT_DIR}/docker/frontend.dockerfile"
+      --target "deploy"
+      --force
+      --destination "${CI_REGISTRY_IMAGE}/frontend:latest"
+    - >-
+      /kaniko/executor
+      --context "${CI_PROJECT_DIR}/backend"
+      --dockerfile "${CI_PROJECT_DIR}/docker/backend.dockerfile"
+      --target "deploy"
+      --force
+      --destination "${CI_REGISTRY_IMAGE}/backend:latest"
+  only:
+    refs:
+      - main
+  retry: 2
+
+deploy:
+  stage: deploy
+  image:
+    name: python:3
+  script:
+    - python -m pip install httpie
+    # backend setup
+    - http POST https://portainer.sifs0005.infs.ch/api/webhooks/2d8f4836-23bb-445b-80ea-753c3b08739c
+    # backend
+    - http POST https://portainer.sifs0005.infs.ch/api/webhooks/1ab1f550-3af8-4ee0-8d8f-21f322dcbeb6
+    # frontend
+    - http POST https://portainer.sifs0005.infs.ch/api/webhooks/07b19d1c-96a2-4204-bda9-094de3268e60
+  only:
+    refs:
+      - main
+  retry: 2

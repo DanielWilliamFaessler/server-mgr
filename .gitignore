@@ -1,0 +1,10 @@
+.vscode
+.mypy_cache
+docker-stack.yml
+app.egg-info
+__pycache__/
+.pytest_cache/
+_app/
+app_/
+nb/.*
+.env

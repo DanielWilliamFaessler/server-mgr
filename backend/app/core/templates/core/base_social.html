@@ -1,0 +1,13 @@
+{% extends 'django_bootstrap5/bootstrap5.html' %}
+{% load django_bootstrap5 %}
+
+{% block bootstrap5_content %}
+    <div class="container">
+            {% block body %}
+            {% block content %}
+            {% endblock %}
+            {% endblock %}
+            {% block extra_body %}
+            {% endblock %}
+    </div>
+{% endblock %}

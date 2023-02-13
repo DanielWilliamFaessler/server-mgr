@@ -1,0 +1,42 @@
+[tool.poetry]
+name = "app"
+version = "0.1.0"
+description = ""
+authors = ["Nicola Jordan <nic@hixi.ch>"]
+
+[tool.poetry.dependencies]
+python = ">=3.11,<4"
+Django = "^4.1"
+django-cors-headers = "^3.13.0"
+django-debug-toolbar = "^3.5.0"
+django-environ = "^0.9.0"
+django-filter = "^22.1"
+Markdown = "^3.4.1"
+psycopg2-binary = "^2.9.3"
+pymemcache = "^3.5.2"
+python-memcached = "^1.59"
+Werkzeug = "^2.2.1"
+uvicorn = "^0.18.2"
+gunicorn = "^20.1.0"
+django-allauth = "^0.51.0"
+# git needs to be used until https://github.com/django-extensions/django-extensions/pull/1736 is released
+django-extensions = {git = "https://github.com/django-extensions/django-extensions.git", rev = "2e84f6f1dfaea3a111c861ae516b0c022d7e6e08"}
+# django-extensions = "^3.2.0"
+django-extra-fields = "^3.0.2"
+django-bootstrap5 = "^22.2"
+hcloud = "^1.18.2"
+
+[tool.poetry.dev-dependencies]
+pytest-django = "^4.5.2"
+pytest = "^7.1.2"
+mypy = "^0.971"
+isort = "^5.10.1"
+blue = "^0.9.1"
+autoflake = "^1.4"
+
+[tool.poetry.group.dev.dependencies]
+ipython = "^8.10.0"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

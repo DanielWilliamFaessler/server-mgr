@@ -1,0 +1,124 @@
+version: "3.8"
+services:
+
+  proxy:
+    image: geometalab/env-configurable-caddy
+    environment:
+      # See https://caddyserver.com/docs/quick-starts/caddyfile for details
+      # about the config file; below is an example
+      CADDY_CONFIG: |
+        # internal ssl, no valid certs though!
+        localhost:8000 {
+          route {
+            handle /serve-files* {
+              uri strip_prefix /serve-files
+              file_server {
+                root /files
+                browse
+              }
+            }
+            reverse_proxy /maildev* {
+              to maildev:8000
+            }
+            reverse_proxy /* {
+              to backend:8000
+            }
+          }
+        }
+    volumes:
+      - django-static-files:/files/static
+      - django-media-files:/files/media
+    ports:
+      - '8000:8000'
+    logging:
+      &logging
+      driver: json-file
+      options:
+        max-size: 50m
+
+  django-db:
+    image: postgres:15
+    environment:
+      POSTGRES_PASSWORD: a-password
+      POSTGRES_USER: django
+      POSTGRES_DB: app
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - django-db:/var/lib/postgresql/data
+    logging:
+      <<: *logging
+
+  django-cache:
+    image: memcached
+    entrypoint: >-
+      memcached -m 64
+    logging:
+      <<: *logging
+
+  backend: &backend
+    build:
+      context: backend/
+      dockerfile: ../docker/backend.dockerfile
+      target: dev
+    entrypoint: dockerize -wait tcp://django-db:5432 -timeout 30s
+    command: ./manage.py runserver_plus 0.0.0.0:8000
+    # command: gunicorn config.asgi:application -b 0.0.0.0:8000 -k uvicorn.workers.UvicornWorker --reload
+    # command: gunicorn config.wsgi --reload
+    # command: gunicorn config.asgi:application -b 0.0.0.0:8000 -w 3 -k uvicorn.workers.UvicornWorker
+    user: "1000:1000"
+    volumes:
+      - django-static-files:/files/static
+      - django-media-files:/files/media
+      - ./backend:/app
+    environment: &env
+      DEBUG: "True"
+      DJANGO_SECRET_KEY: django-insecure-change-me-in-production!!!!
+      DJANGO_DATABASE_URL: psql://django:a-password@django-db:5432/app
+      DJANGO_CACHE_URL: pymemcache://memcached:11211
+      DJANGO_STATIC_URL: /serve-files/static/
+      DJANGO_STATIC_ROOT: /files/static
+      DJANGO_MEDIA_URL: /serve-files/media/
+      DJANGO_MEDIA_ROOT: /files/media
+      DJANGO_ALLOWED_HOSTS: "*"
+      MPLCONFIGDIR: /app/.config
+      # https://django-environ.readthedocs.io/en/latest/types.html
+      DJANGO_EMAIL_URL: smtp://user:password@maildev:1025
+    logging:
+      <<: *logging
+
+  setup-backend:
+    <<: *backend
+    command: >-
+      bash -c './manage.py migrate && ./manage.py collectstatic --noinput'
+    logging:
+      <<: *logging
+
+  backend-deploy:
+    image: registry.gitlab.ost.ch:45023/ifs/internal-website/backend:${TAG:-latest}
+    build:
+      context: backend/
+      dockerfile: ../docker/backend.dockerfile
+      target: deploy
+    command: echo true
+
+  maildev:
+    image: djfarrelly/maildev
+    command: >-
+      bin/maildev --base-pathname /maildev -w 8000 -s 1025 --incoming-user
+      user --incoming-pass password
+    logging:
+      <<: *logging
+
+  handle-volume-rights:
+    <<: *backend
+    user: root
+    command: >-
+      bash -c 'chown -R 1000:1000 /files/'
+    volumes:
+      - django-static-files:/files/static
+      - django-media-files:/files/media
+
+volumes:
+  django-static-files: null
+  django-media-files: null
+  django-db: null

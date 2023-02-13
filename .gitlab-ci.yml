@@ -1,8 +1,5 @@
 image: gcr.io/kaniko-project/executor:debug
 
-services:
-  - docker:dind
-
 stages:
   - build
   - deploy

@@ -1,0 +1,28 @@
+{% extends 'core/base.html' %}
+{% load django_bootstrap5 %}
+
+{% block title %}Server List{% endblock %}
+
+{% block content %}
+    <div class="alert alert-warning" role="alert">
+        These are one-off instances and turn off automatically after 4h.
+        All your data will be erased.
+        You get full access (inclusive root password), please
+        backup your data yourself, if needed.
+    </div>
+    
+    <a type="button" class="btn btn-primary" href="{% url 'server-add' %}">Create new instance</a>
+    
+    {% for server in servers %}
+    <div class="card mt-2">
+        <div class="card-body">
+        <h5 class="card-title">{{ server.server_type }}</h5>
+        <p class="card-text">{{ server.user_message|safe }}</p>
+
+        <a class="btn btn-info" href="{% url 'server-details' server.id %}">details</a>
+        <a href="#" class="btn btn-warning">restart server</a>
+        <a href="{% url 'server-delete' server.id %}" class="btn btn-danger">delete server</a>
+        </div>
+    </div>
+    {% endfor %}
+{% endblock %}

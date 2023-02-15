@@ -47,15 +47,12 @@ build-docker-prod-image:
 deploy:
   stage: deploy
   image:
-    name: python:3
+    name: curlimages/curl
   script:
-    - python -m pip install httpie
     # backend setup
-    #- http POST 
+    #- curl -X POST 
     ## backend
-    #- http POST 
-    ## frontend
-    #- http POST 
+    #- curl -X POST 
   only:
     refs:
       - main

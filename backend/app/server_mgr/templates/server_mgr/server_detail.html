@@ -1,0 +1,20 @@
+{% extends 'core/base.html' %}
+{% load django_bootstrap5 %}
+
+{% block title %}Server Details - {{ server }}{% endblock %}
+
+{% block content %}
+    <a type="button" class="btn btn-secondary" href="{% url 'server-list' %}">back</a>
+    <div class="card mt-2">
+        <div class="card-body">
+        <h5 class="card-title">Type: <code>{{ server.server_type }}</code></h5>
+        <p class="card-text">Server Name: <code>{{ server.server_name }}</code></p>
+        <p class="card-text">Login Username: <code>{{ server.server_user }}</code></p>
+        <p class="card-text">Login Password: <code>{{ server.server_password }}</code></p>
+        <p class="card-text">SSH Example: <code>ssh://{{ server.server_user }}@{{ server.server_address }}</code></p>
+
+        <a href="#" class="btn btn-warning">restart server</a>
+        <a href="#" class="btn btn-danger">delete server</a>
+        </div>
+    </div>
+{% endblock %}

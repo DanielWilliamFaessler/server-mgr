@@ -74,7 +74,7 @@ services:
       DEBUG: "True"
       DJANGO_SECRET_KEY: django-insecure-change-me-in-production!!!!
       DJANGO_DATABASE_URL: psql://django:a-password@django-db:5432/app
-      DJANGO_CACHE_URL: pymemcache://memcached:11211
+      DJANGO_CACHE_URL: pymemcache://django-cache:11211
       DJANGO_STATIC_URL: /serve-files/static/
       DJANGO_STATIC_ROOT: /files/static
       DJANGO_MEDIA_URL: /serve-files/media/
@@ -83,6 +83,15 @@ services:
       MPLCONFIGDIR: /app/.config
       # https://django-environ.readthedocs.io/en/latest/types.html
       DJANGO_EMAIL_URL: smtp://user:password@maildev:1025
+    env_file:
+      - .env
+    logging:
+      <<: *logging
+
+  cleanup:
+    <<: *backend
+    command: >-
+      ./manage.py runscript cleanup
     logging:
       <<: *logging
 
@@ -93,13 +102,14 @@ services:
     logging:
       <<: *logging
 
-  backend-deploy:
-    image: registry.gitlab.ost.ch:45023/ifs/internal-website/backend:${TAG:-latest}
-    build:
-      context: backend/
-      dockerfile: ../docker/backend.dockerfile
-      target: deploy
-    command: echo true
+  # when changing the setup, test the prod image locally as well.
+  # backend-deploy:
+  #   image: registry.gitlab.ost.ch:45023/ifs/internal-website/backend:${TAG:-latest}
+  #   build:
+  #     context: backend/
+  #     dockerfile: ../docker/backend.dockerfile
+  #     target: deploy
+  #   command: echo true
 
   maildev:
     image: djfarrelly/maildev

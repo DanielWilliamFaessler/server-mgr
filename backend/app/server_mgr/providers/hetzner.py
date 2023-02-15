@@ -3,6 +3,7 @@ import random
 import string
 import os
 from datetime import datetime
+from django.utils import timezone
 
 HCLOUD_TOKEN = os.environ.get('HCLOUD_TOKEN')
 
@@ -11,7 +12,6 @@ if not HCLOUD_TOKEN:
 
 from hcloud import Client
 from hcloud.server_types.domain import ServerType
-from hcloud.images.domain import Image
 
 
 @dataclass
@@ -32,7 +32,7 @@ def _get_server_infos(server):
         name=server.name,
         status=server.status,
         created=server.created,
-        address=server.public_net.primary_ipv4,
+        address=server.public_net.primary_ipv4.ip,
         labels=server.labels,
     )
 
@@ -49,11 +49,13 @@ def _create_random_name():
 
 def create_superset_server(username) -> ServerInfo:
     name = f'superset-{_create_random_name()}-{_create_random_name()}'
-    server_type = ServerType(name='cpx21')
-    image = Image(name='ubuntu-22.04')
+    server_type = ServerType(name='cx21')
     client = Client(token=f'{HCLOUD_TOKEN}')
+    # snapshot only have descriptions and labels
+    # image = Image(name='superset', type='snapshot')
+    image = [i for i in client.images.get_all(type='snapshot') if i.description == 'superset'][0]
     location = client.locations.get_by_name('nbg1')
-    created_date = str(datetime.now().isoformat('-', 'minutes'))
+    created_date = str(timezone.now().isoformat('-', 'minutes')).replace(':', '-').replace('+', '-')
 
     response = client.servers.create(
         name=name,
@@ -73,31 +75,31 @@ def create_superset_server(username) -> ServerInfo:
     return server_info
 
 
-def get_server(server_id):
+def _get_server(server_id):
     client = Client(token=f'{HCLOUD_TOKEN}')
-    response = client.servers.get_by_id(server_id)
-    return response.server, response
+    server = client.servers.get_by_id(server_id)
+    return server
 
 
 def status(server_id):
-    server, _ = get_server(server_id)
+    server = _get_server(server_id)
     return _get_server_infos(server)
 
 
 def reboot(server_id):
-    server, _ = get_server(server_id)
+    server = _get_server(server_id)
     server.reboot()
     return _get_server_infos(server)
 
 
 def reset_pw(server_id):
-    server, _ = get_server(server_id)
+    server = _get_server(server_id)
     response = server.reset_password()
     return response.root_password
 
 
 def destroy(server_id):
-    server, _ = get_server(server_id)
+    server = _get_server(server_id)
     server.delete()
     # server is deleted!
     return None

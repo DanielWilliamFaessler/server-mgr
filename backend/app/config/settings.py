@@ -243,6 +243,7 @@ SOCIALACCOUNT_PROVIDERS = {
         ],
     },
 }
+# https://django-allauth.readthedocs.io/en/latest/configuration.html
 ACCOUNT_AUTHENTICATED_LOGIN_REDIRECTS = False
 ACCOUNT_DEFAULT_HTTP_PROTOCOL = 'https'
 

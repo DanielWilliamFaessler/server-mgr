@@ -244,6 +244,8 @@ SOCIALACCOUNT_PROVIDERS = {
     },
 }
 # https://django-allauth.readthedocs.io/en/latest/configuration.html
+ACCOUNT_EMAIL_VERIFICATION = "none"
+SOCIALACCOUNT_EMAIL_VERIFICATION = "none"
 ACCOUNT_AUTHENTICATED_LOGIN_REDIRECTS = False
 ACCOUNT_DEFAULT_HTTP_PROTOCOL = 'https'
 

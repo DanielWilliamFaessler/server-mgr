@@ -10,7 +10,10 @@
         <h5 class="card-title">Type: <code>{{ server.server_type }}</code></h5>
         <p class="card-text">Server Name: <code>{{ server.server_name }}</code></p>
         <p class="card-text">Login Username: <code>{{ server.server_user }}</code></p>
-        <p class="card-text">Login Password: <code>{{ server.server_password }}</code></p>
+        <details>
+            <summary>Login Password: (click to show)</summary>
+            <code>{{ server.server_password }}</code>
+        </details>
         <p class="card-text">SSH Example: <code>ssh://{{ server.server_user }}@{{ server.server_address }}</code></p>
 
         <a href="{% url 'server-reboot' server.id %}" class="btn btn-warning">restart server</a>

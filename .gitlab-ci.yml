@@ -49,6 +49,7 @@ deploy:
   image:
     name: curlimages/curl
   script:
+    - echo 'hello world'
     # backend setup
     #- curl -X POST 
     ## backend

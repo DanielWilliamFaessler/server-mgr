@@ -1,4 +1,5 @@
 from django.forms import ValidationError
+from django.http import HttpResponseRedirect
 from django.urls import reverse_lazy
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView, DetailView
 
@@ -61,4 +62,18 @@ class ServerCreateView(ServerMixin, CreateView):
 
 
 class ServerDeleteView(ServerMixin, DeleteView):
+    template_name = 'server_mgr/server_confirm_delete.html'
     success_url = reverse_lazy('server-list')
+
+
+class ServerRestartView(ServerMixin, DeleteView):
+    # A little bit cheating: we need almost everything
+    # as if it would be a delete, but
+    # do a reboot instead.
+    template_name = 'server_mgr/server_confirm_reboot.html'
+    success_url = reverse_lazy('server-list')
+
+    def form_valid(self, form):
+        success_url = self.get_success_url()
+        self.object.reboot_server(self.request.user)
+        return HttpResponseRedirect(success_url)

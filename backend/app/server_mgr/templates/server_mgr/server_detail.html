@@ -13,8 +13,8 @@
         <p class="card-text">Login Password: <code>{{ server.server_password }}</code></p>
         <p class="card-text">SSH Example: <code>ssh://{{ server.server_user }}@{{ server.server_address }}</code></p>
 
-        <a href="#" class="btn btn-warning">restart server</a>
-        <a href="#" class="btn btn-danger">delete server</a>
+        <a href="{% url 'server-reboot' server.id %}" class="btn btn-warning">restart server</a>
+        <a href="{% url 'server-delete' server.id %}" class="btn btn-danger">delete server</a>
         </div>
     </div>
 {% endblock %}

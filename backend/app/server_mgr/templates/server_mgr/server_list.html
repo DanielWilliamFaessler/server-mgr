@@ -20,7 +20,7 @@
         <p class="card-text">{{ server.user_message|safe }}</p>
 
         <a class="btn btn-info" href="{% url 'server-details' server.id %}">details</a>
-        <a href="#" class="btn btn-warning">restart server</a>
+        <a href="{% url 'server-reboot' server.id %}" class="btn btn-warning">restart server</a>
         <a href="{% url 'server-delete' server.id %}" class="btn btn-danger">delete server</a>
         </div>
     </div>

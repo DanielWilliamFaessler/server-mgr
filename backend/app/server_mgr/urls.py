@@ -5,6 +5,7 @@ from .views import (
     ServerDetailView,
     ServerCreateView,
     ServerDeleteView,
+    ServerRestartView,
 )
 
 urlpatterns = [
@@ -17,5 +18,10 @@ urlpatterns = [
         'servers/<int:pk>/delete/',
         ServerDeleteView.as_view(),
         name='server-delete',
+    ),
+    path(
+        'servers/<int:pk>/reboot/',
+        ServerRestartView.as_view(),
+        name='server-reboot',
     ),
 ]

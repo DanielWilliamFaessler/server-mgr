@@ -1,7 +1,13 @@
 from django.forms import ValidationError
 from django.http import HttpResponseRedirect
 from django.urls import reverse_lazy
-from django.views.generic import ListView, CreateView, UpdateView, DeleteView, DetailView
+from django.views.generic import (
+    ListView,
+    CreateView,
+    UpdateView,
+    DeleteView,
+    DetailView,
+)
 
 from .models import Server
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -48,17 +54,23 @@ class ServerCreateView(ServerMixin, CreateView):
         """
         self.object = None
         form = self.get_form()
-        
+
         server_type = form.data['server_type']
-        has_server_already = Server.objects.filter(server_type=server_type).filter(user=request.user).count() != 0
+        has_server_already = (
+            Server.objects.filter(server_type=server_type)
+            .filter(user=request.user)
+            .count()
+            != 0
+        )
         if has_server_already:
-            form.add_error('server_type', 'You already have a server of this type.')
+            form.add_error(
+                'server_type', 'You already have a server of this type.'
+            )
 
         if form.is_valid():
             return self.form_valid(form)
         else:
             return self.form_invalid(form)
-
 
 
 class ServerDeleteView(ServerMixin, DeleteView):

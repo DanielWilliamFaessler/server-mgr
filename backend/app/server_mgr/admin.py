@@ -1,14 +1,20 @@
 from django.contrib import admin
 
-from .models import Server
+from .models import Server, ServerVariant
+
+
+@admin.register(ServerVariant)
+class ServerAdmin(admin.ModelAdmin):
+    pass
+
 
 @admin.register(Server)
 class ServerAdmin(admin.ModelAdmin):
     actions = None
     readonly_fields = [
-        "server_id",
-        "server_address",
-        "server_password",
+        'server_id',
+        'server_address',
+        'server_password',
         'server_name',
     ]
     list_display = [

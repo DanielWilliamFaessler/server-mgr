@@ -47,26 +47,36 @@ def _create_random_name():
     return _create_random_string(choice_pool=string.ascii_letters)
 
 
-def create_superset_server(username) -> ServerInfo:
-    name = f'superset-{_create_random_name()}-{_create_random_name()}'
-    server_type = ServerType(name='cx21')
+def create_hetzner_server(server_variant, labels: dict) -> ServerInfo:
     client = Client(token=f'{HCLOUD_TOKEN}')
+    name = f'{server_variant.type_id}-{_create_random_name()}-{_create_random_name()}'
+    server_type = ServerType(name=server_variant.instance_type)
     # snapshot only have descriptions and labels
     # image = Image(name='superset', type='snapshot')
-    image = [i for i in client.images.get_all(type='snapshot') if i.description == 'superset'][0]
-    location = client.locations.get_by_name('nbg1')
-    created_date = str(timezone.now().isoformat('-', 'minutes')).replace(':', '-').replace('+', '-')
-
+    image = [
+        i
+        for i in client.images.get_all(type='snapshot')
+        if i.description == server_variant.image_name
+    ][0]
+    location = client.locations.get_by_name(server_variant.location)
+    created_date = (
+        str(timezone.now().isoformat('-', 'minutes'))
+        .replace(':', '-')
+        .replace('+', '-')
+    )
+    if labels is None:
+        labels = {}
+    labels = {
+        **labels,
+        'usage': server_variant.type_id,
+        'created-on': created_date,
+    }
     response = client.servers.create(
         name=name,
         server_type=server_type,
         image=image,
         location=location,
-        labels={
-            'usage': 'superset',
-            'username': username,
-            'created-on': created_date,
-        },
+        labels=labels,
     )
     server = response.server
     server_info = _get_server_infos(server)

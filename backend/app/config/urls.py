@@ -15,7 +15,11 @@ for provider in providers.registry.get_list():
 
 allauth_urls = [
     path('auth/', include(providers_urlpatterns)),
-    re_path(r'^confirm-email/(?P<key>[-:\w]+)/', confirm_email, name='account_confirm_email'),
+    re_path(
+        r'^confirm-email/(?P<key>[-:\w]+)/',
+        confirm_email,
+        name='account_confirm_email',
+    ),
     path('login/', login, name='account_login'),
     path('logout/', logout, name='account_logout'),
     path('signup/', login, name='account_signup'),  # disable email signup

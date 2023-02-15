@@ -1,9 +1,7 @@
 #!/usr/bin/env python3
 import time
-from datetime import timedelta
 from django.utils import timezone
-from server_mgr.models import server_types, Server
-from server_mgr.providers.hetzner import destroy
+from server_mgr.models import Server
 
 SLEEP_FOR_SECONDS = 60
 

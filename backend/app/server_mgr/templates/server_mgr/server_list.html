@@ -16,7 +16,12 @@
     {% for server in servers %}
     <div class="card mt-2">
         <div class="card-body">
-        <h5 class="card-title">{{ server.server_type }}</h5>
+        <h5 class="card-title">
+            {{ server.server_type }}
+            {% if user.is_superuser %}
+                ({{ server.user.username }})
+            {% endif %}
+        </h5>
         <p class="card-text">{{ server.user_message|safe }}</p>
 
         <a class="btn btn-info" href="{% url 'server-details' server.id %}">details</a>

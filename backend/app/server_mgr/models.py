@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from datetime import timedelta
 from typing import Callable
+import logging
 
 from django.conf import settings
 from django.db import models
@@ -8,7 +9,7 @@ from django.template import Context, Template
 from django.urls import reverse_lazy
 from django.contrib.auth import get_user_model
 from django.utils import timezone
-
+from hcloud.hcloud import APIException
 from django_extensions.db.models import TimeStampedModel
 from server_mgr.providers.hetzner import (
     ServerInfo,
@@ -19,7 +20,7 @@ from server_mgr.providers.hetzner import (
 )
 
 User = get_user_model()
-
+logger = logging.Logger(__name__)
 
 class ServerVariant(models.Model):
     type_id = models.CharField(
@@ -184,5 +185,8 @@ class Server(TimeStampedModel, models.Model):
         return super().save(**kwargs)
 
     def delete(self, *args, **kwargs):
-        destroy(self.server_id)
+        try:
+            destroy(self.server_id)
+        except APIException as e:
+            logger.error(f'APIError (Hetzner) happened, continuing nontheless. Error: {e}')
         return super().delete(*args, **kwargs)

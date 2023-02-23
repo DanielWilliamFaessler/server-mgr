@@ -244,8 +244,8 @@ SOCIALACCOUNT_PROVIDERS = {
     },
 }
 # https://django-allauth.readthedocs.io/en/latest/configuration.html
-ACCOUNT_EMAIL_VERIFICATION = "none"
-SOCIALACCOUNT_EMAIL_VERIFICATION = "none"
+ACCOUNT_EMAIL_VERIFICATION = 'none'
+SOCIALACCOUNT_EMAIL_VERIFICATION = 'none'
 ACCOUNT_AUTHENTICATED_LOGIN_REDIRECTS = False
 ACCOUNT_DEFAULT_HTTP_PROTOCOL = 'https'
 
@@ -257,5 +257,12 @@ EMAIL_CONFIG = env.email(
     'DJANGO_EMAIL_URL', default='smtp://user:password@localhost:25'
 )
 vars().update(EMAIL_CONFIG)
+EMAIL_DEFAULT_FROM = env.str('DJANGO_EMAIL_DEFAULT_FROM')
+EMAIL_ADMINS = [
+    ('Dominic Klinger', 'dominic.klinger@ost.ch'),
+    ('Raphael Das Gupta', 'raphael.dasgupta@ost.ch'),
+    ('Nicola Jordan', 'nicola.jordan@ost.ch'),
+]
+EMAIL_SUBJECT_PREFIX = '[Server-Mgr] '
 
 AUTH_USER_MODEL = 'core.User'

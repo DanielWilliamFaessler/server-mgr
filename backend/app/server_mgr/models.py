@@ -158,8 +158,9 @@ class Server(TimeStampedModel, models.Model):
         msg = f'''
 Your server {self} is scheduled to be removed on {self.removal_at}.
 If you want to keep if, use this link to extend its lifetime by {self.server_type.prolong_by_days} days:
-{site}{reverse_lazy('server-prolong', kwargs=dict(pk=self.id, secret=self.extending_lifetime_secret))}
+{site}{reverse_lazy('server-prolong', kwargs=dict(pk=self.id, secret=self.extending_lifetime_secret))}.
 '''
+
         email = self.user.email
         if not email:
             email = settings.ADMIN_EMAILS
@@ -245,7 +246,6 @@ If you want to keep if, use this link to extend its lifetime by {self.server_typ
 
     def get_absolute_url(self):
         return reverse_lazy('server-list')
-        # return reverse_lazy('server-details', args=[self.id])
 
     def prolong(self):
         days_count = self.server_type.prolong_by_days

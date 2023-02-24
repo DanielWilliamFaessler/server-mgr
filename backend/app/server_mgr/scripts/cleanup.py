@@ -27,12 +27,17 @@ def run_cleanup():
 
 
 def run_info_mail_send():
-    in_a_week = timezone.now() + timedelta(weeks=2)
+    '''
+    renewal is only available 4 weeks before the deadline.
+    '''
+
+    in_4_weeks = timezone.now() + timedelta(weeks=4)
     unsent_servers = (
         Server.objects.filter(notify_before_destroy=True)
         .filter(info_mail_sent=False)
-        .filter(removal_at__lte=in_a_week)
+        .filter(removal_at__lte=in_4_weeks)
     )
+
     if len(unsent_servers) > 0:
         try:
             site = Site.objects.get(pk=settings.SITE_ID)

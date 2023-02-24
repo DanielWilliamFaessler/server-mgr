@@ -1,15 +1,13 @@
-from django.forms import ValidationError
 from django.http import HttpResponseRedirect
-from django.urls import reverse_lazy
+from django.urls import reverse_lazy, reverse
 from django.views.generic import (
     ListView,
     CreateView,
-    UpdateView,
     DeleteView,
     DetailView,
 )
 
-from .models import Server
+from .models import Server, ServerVariant
 from django.contrib.auth.mixins import LoginRequiredMixin
 
 
@@ -42,6 +40,11 @@ class ServerDetailView(ServerMixin, DetailView):
 class ServerCreateView(ServerMixin, CreateView):
     template_name = 'server_mgr/server_add.html'
     fields = ['server_type']
+
+    def get_form(self, *args, **kwargs):
+        form = super().get_form(*args, **kwargs)
+        form.fields['server_type'].queryset = ServerVariant.get_allowed_variants(self.request.user)
+        return form
 
     def form_valid(self, form):
         form.instance.user = self.request.user
@@ -78,6 +81,25 @@ class ServerDeleteView(ServerMixin, DeleteView):
     success_url = reverse_lazy('server-list')
 
 
+class ServerProlongView(ServerMixin, DeleteView):
+    # FIXME: check for secret and deny access
+    template_name = 'server_mgr/server_prolong.html'
+    success_url = reverse_lazy('server-list')    
+    fields = ['server_type']
+    
+    def get_object(self, *args, **kwargs):
+        obj = super().get_object(*args, **kwargs)
+        secret = self.kwargs['secret']
+        if obj.extending_lifetime_secret != secret:
+            raise Server.DoesNotExist()
+        return super().get_object(*args, **kwargs)
+
+    def form_valid(self, form):
+        success_url = self.get_success_url()
+        self.object.prolong()
+        return HttpResponseRedirect(success_url)
+
+
 class ServerRestartView(ServerMixin, DeleteView):
     # A little bit cheating: we need almost everything
     # as if it would be a delete, but
@@ -89,3 +111,4 @@ class ServerRestartView(ServerMixin, DeleteView):
         success_url = self.get_success_url()
         self.object.reboot_server(self.request.user)
         return HttpResponseRedirect(success_url)
+ 

@@ -1,0 +1,16 @@
+{% extends 'core/base.html' %}
+{% load django_bootstrap5 %}
+
+{% block title %}prolong server {{ object }} for {{ object.server_type.prolong_by_days }} days{% endblock %}
+
+{% block content %}
+<form method="post">{% csrf_token %}
+    <p>Do you want to prolong the server "{{ object }}"?</p>
+
+    {% bootstrap_button button_class="btn-warning" button_type="submit" content="Yes" %}
+
+    <a type="button" class="btn btn-primary" href="{% url 'server-list' %}">
+        Cancel
+    </a>
+</form>
+{% endblock %}

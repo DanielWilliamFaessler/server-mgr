@@ -5,7 +5,7 @@ from .models import Server, ServerVariant
 
 @admin.register(ServerVariant)
 class ServerAdmin(admin.ModelAdmin):
-    pass
+    save_as = True
 
 
 @admin.register(Server)
@@ -16,6 +16,7 @@ class ServerAdmin(admin.ModelAdmin):
         'server_address',
         'server_password',
         'server_name',
+        'extending_lifetime_secret',
     ]
     list_display = [
         '__str__',

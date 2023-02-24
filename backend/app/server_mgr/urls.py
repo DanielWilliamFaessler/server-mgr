@@ -6,6 +6,7 @@ from .views import (
     ServerCreateView,
     ServerDeleteView,
     ServerRestartView,
+    ServerProlongView,
 )
 
 urlpatterns = [
@@ -26,4 +27,5 @@ urlpatterns = [
         ServerRestartView.as_view(),
         name='server-reboot',
     ),
+    path('servers/<int:pk>/prolong/<uuid:secret>/', ServerProlongView.as_view(), name='server-prolong')
 ]

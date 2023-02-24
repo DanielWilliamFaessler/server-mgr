@@ -83,6 +83,8 @@ services:
       MPLCONFIGDIR: /app/.config
       # https://django-environ.readthedocs.io/en/latest/types.html
       DJANGO_EMAIL_URL: smtp://user:password@maildev:1025
+      DJANGO_EMAIL_DEFAULT_FROM: nicola.jordan@maildev
+      DJANGO_EMAIL_ADMINS: nicola.jordan@ost.ch,dominic.klinger@ost.ch
     env_file:
       - .env
     logging:

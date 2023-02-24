@@ -1,8 +1,9 @@
-from dataclasses import dataclass
 from datetime import timedelta
-from typing import Callable
 import logging
+from uuid import uuid4
 
+from django.contrib.auth.models import Group
+from django.core.mail import send_mail, mail_admins
 from django.conf import settings
 from django.db import models
 from django.template import Context, Template
@@ -12,7 +13,6 @@ from django.utils import timezone
 from hcloud.hcloud import APIException
 from django_extensions.db.models import TimeStampedModel
 from server_mgr.providers.hetzner import (
-    ServerInfo,
     destroy,
     reboot,
     reset_pw,
@@ -21,6 +21,7 @@ from server_mgr.providers.hetzner import (
 
 User = get_user_model()
 logger = logging.Logger(__name__)
+
 
 class ServerVariant(models.Model):
     type_id = models.CharField(
@@ -46,6 +47,21 @@ class ServerVariant(models.Model):
     remove_after_minutes = models.IntegerField(
         default=4 * 60, help_text='default is 4h.'
     )
+    notify_before_destroy = models.BooleanField(
+        null=False,
+        default=False,
+        help_text='Default settings for notify user before deletion of server',
+    )
+    allowed_groups = models.ManyToManyField(
+        Group,
+        blank=True,
+        default=None,
+        help_text='None for allowed for everyone. Select groups to limit access to the template.',
+    )
+    prolong_by_days = models.IntegerField(
+        null=True, blank=True, default=None,
+        help_text='if set, allow prolonging by this amount of days. 365 is a year, nicola ;-).'
+    )
 
     def __str__(self) -> str:
         return self.name
@@ -56,6 +72,25 @@ class ServerVariant(models.Model):
         labels = {'username': username}
         return create_hetzner_server(self, labels)
 
+    def has_group_permission(self, user):
+        server_groups = set([g.id for g in self.allowed_groups.all()])
+
+        if len(server_groups) == 0:
+            return True
+
+        user_groups = set([g.id for g in user.groups.all()])
+
+        if len(server_groups) and len(server_groups.intersection(user_groups)) > 0:
+            return True
+        return False
+
+    @classmethod
+    def get_allowed_variants(cls, user):
+        return cls.objects.filter(
+            models.Q(allowed_groups=None)
+            | models.Q(allowed_groups__in=user.groups.all())
+        )
+    
     @classmethod
     def _create_default_server(cls):
         cls(
@@ -74,10 +109,11 @@ class ServerVariant(models.Model):
             #
             user_message="""Your instance should soon (usually within 3 minutes) be available at 
 <a target="_blank" href="http://{{ server.server_address }}:8088">http://{{ server.server_address }}:8088</a>.
-It will be active until {{ server.removal_at|date:"H:i:s (d-m-y)" }} and then destroyed (including your data!).<br />
+It will be active until {{ server.removal_at|date:"H:i:s (Y-m-d)" }} and then destroyed (including your data!).<br />
 You can login using the standard username <code>admin</code> and password <code>admin</code>.
 Your Server credentials can be found under details.<br />""",
             remove_after_minutes=4 * 60,
+            notify_before_destroy=False,
         ).save()
 
 
@@ -103,6 +139,50 @@ class Server(TimeStampedModel, models.Model):
     server_user = models.CharField(max_length=200, null=True, blank=True)
     # this needs to be plain text, to be able to display again
     server_password = models.CharField(max_length=200, null=True, blank=True)
+    notify_before_destroy = models.BooleanField(
+        null=False, blank=False, default=False
+    )
+    info_mail_sent = models.BooleanField(
+        null=False, blank=False, default=False
+    )
+    extending_lifetime_secret = models.UUIDField(
+        null=True, blank=True, editable=False, default=None
+    )
+
+    def send_deletion_notification_mail(self, site):
+        if not self.server_type.prolong_by_days:
+            return self
+        
+        self.extending_lifetime_secret = uuid4()
+        subject = f'Your server will be deleted on {self.removal_at}. Prolong it now.'
+        msg = f'''
+Your server {self} is scheduled to be removed on {self.removal_at}.
+If you want to keep if, use this link to extend its lifetime by {self.server_type.prolong_by_days} days:
+{site}{reverse_lazy('server-prolong', kwargs=dict(pk=self.id, secret=self.extending_lifetime_secret))}.
+'''
+
+        email = self.user.email
+        if not email:
+            email = settings.ADMIN_EMAILS
+        try:
+            send_mail(
+                subject,
+                msg,
+                from_email=settings.EMAIL_DEFAULT_FROM,
+                recipient_list=[self.user.email],
+                fail_silently=False,
+            )
+        except:
+            mail_admins(
+                subject=f'unable to send prolonging email.',
+                message=f'{msg}',
+                from_email=settings.EMAIL_DEFAULT_FROM,
+            )
+
+        self.info_mail_sent = True
+        self.save()
+        print('mail sent')
+        return self
 
     def __str__(self) -> str:
         name = f'{self.user.username}: {self.server_type}'
@@ -118,17 +198,25 @@ class Server(TimeStampedModel, models.Model):
     def _has_change_perms(self, user: User):
         return self._has_destroy_perms(user)
 
-    def _has_creation_perms(self, server_type):
-        if not self.user.is_authenticated:
-            return False
+    def _has_creation_perms(self, server_type: ServerVariant):
         if self.user.is_superuser:
             return True
-        return (
+
+        if not self.user.is_authenticated:
+            return False
+
+        has_already_an_instance = (
             Server.objects.filter(server_type=server_type)
             .filter(user=self.user)
             .count()
-            == 0
+            > 0
         )
+        if has_already_an_instance:
+            return False
+
+        if not server_type.has_group_permission(self.user):
+            return False
+        return True
 
     def provision_server(self):
         if self._has_creation_perms(self.server_type):
@@ -158,10 +246,17 @@ class Server(TimeStampedModel, models.Model):
 
     def get_absolute_url(self):
         return reverse_lazy('server-list')
-        # return reverse_lazy('server-details', args=[self.id])
 
-    def get_full_server_type(self, server_type):
-        return self.server_type
+    def prolong(self):
+        days_count = self.server_type.prolong_by_days
+        if not days_count:
+            return self
+        self.removal_at = self.removal_at + timedelta(
+                days=days_count,
+            )
+        self.extending_lifetime_secret = None
+        self.info_mail_sent = False
+        self.save()
 
     def save(self, **kwargs):
         if not self.server_id:
@@ -174,19 +269,23 @@ class Server(TimeStampedModel, models.Model):
             self.server_user = s.username
             self.server_password = s.password
             self.server_name = s.name
+            self.notify_before_destroy = self.server_type.notify_before_destroy
 
             # extra stuff, like template
             remove_after_minutes = self.server_type.remove_after_minutes
             self.removal_at = timezone.now() + timedelta(
                 minutes=remove_after_minutes
             )
-            t = Template(self.server_type.user_message)
-            self.user_message = t.render(context=Context(dict(server=self)))
+
+        t = Template(self.server_type.user_message)
+        self.user_message = t.render(context=Context(dict(server=self)))
         return super().save(**kwargs)
 
     def delete(self, *args, **kwargs):
         try:
             destroy(self.server_id)
         except APIException as e:
-            logger.error(f'APIError (Hetzner) happened, continuing nontheless. Error: {e}')
+            logger.error(
+                f'APIError (Hetzner) happened, continuing nontheless. Error: {e}'
+            )
         return super().delete(*args, **kwargs)

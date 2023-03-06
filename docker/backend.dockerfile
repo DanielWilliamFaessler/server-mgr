@@ -2,10 +2,21 @@
 
 FROM python:3.11 as base
 
-# ENV DEBIAN_FRONTEND=noninteractive
-# RUN apt-get update \
-#     && apt-get install -y \
-#     && rm -rf /var/lib/apt/lists/*
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update \
+    && apt-get install -y \
+    wget \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN curl -LO https://releases.hashicorp.com/terraform/1.3.9/terraform_1.3.9_linux_amd64.zip \
+    && unzip terraform_1.3.9_linux_amd64.zip \
+    && install -o root -g root -m 0755 terraform /usr/local/bin/terraform
+
+RUN curl -LO "https://dl.k8s.io/release/v1.26.0/bin/linux/amd64/kubectl" \
+  && curl -LO "https://dl.k8s.io/release/v1.26.0/bin/linux/amd64/kubectl.sha256" \
+  && echo "$(cat kubectl.sha256) kubectl" | sha256sum --check --quiet --strict \
+  && install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
 
 ENV PROJECT_FOLDER=app
 

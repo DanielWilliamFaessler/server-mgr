@@ -1,8 +1,18 @@
 image: gcr.io/kaniko-project/executor:debug
 
 stages:
+  - tests
   - build
   - deploy
+
+run-pytest:
+  stage: tests
+  image:
+    name: python:3.11
+  script:
+    - cd backend
+    - poetry install
+    - poetry run pytest
 
 build-docker-image:
   stage: build

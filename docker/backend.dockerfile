@@ -37,7 +37,6 @@ ENV PYTHONFAULTHANDLER=1 \
 ## Specific dockerize version
 RUN curl -sfL https://github.com/powerman/dockerize/releases/download/v0.19.0/dockerize-`uname -s`-`uname -m` | install /dev/stdin /usr/local/bin/dockerize
 
-
 ENV POETRY_CACHE_DIR=/app/.cache USERNAME=py HOME=/app WORKDIR=/app/${PROJECT_FOLDER}
 RUN mkdir -p ${POETRY_CACHE_DIR}
 

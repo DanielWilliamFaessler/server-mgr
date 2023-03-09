@@ -13,6 +13,11 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='servervariant',
             name='prolong_by_days',
-            field=models.IntegerField(blank=True, default=None, help_text='if set, allow prolonging by this amount of days. 365 is a year, nicola ;-).', null=True),
+            field=models.IntegerField(
+                blank=True,
+                default=None,
+                help_text='if set, allow prolonging by this amount of days. 365 is a year, nicola ;-).',
+                null=True,
+            ),
         ),
     ]

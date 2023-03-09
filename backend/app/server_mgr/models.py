@@ -59,8 +59,10 @@ class ServerVariant(models.Model):
         help_text='None for allowed for everyone. Select groups to limit access to the template.',
     )
     prolong_by_days = models.IntegerField(
-        null=True, blank=True, default=None,
-        help_text='if set, allow prolonging by this amount of days. 365 is a year, nicola ;-).'
+        null=True,
+        blank=True,
+        default=None,
+        help_text='if set, allow prolonging by this amount of days. 365 is a year, nicola ;-).',
     )
 
     def __str__(self) -> str:
@@ -80,7 +82,10 @@ class ServerVariant(models.Model):
 
         user_groups = set([g.id for g in user.groups.all()])
 
-        if len(server_groups) and len(server_groups.intersection(user_groups)) > 0:
+        if (
+            len(server_groups)
+            and len(server_groups.intersection(user_groups)) > 0
+        ):
             return True
         return False
 
@@ -90,7 +95,7 @@ class ServerVariant(models.Model):
             models.Q(allowed_groups=None)
             | models.Q(allowed_groups__in=user.groups.all())
         )
-    
+
     @classmethod
     def _create_default_server(cls):
         cls(
@@ -152,14 +157,14 @@ class Server(TimeStampedModel, models.Model):
     def send_deletion_notification_mail(self, site):
         if not self.server_type.prolong_by_days:
             return self
-        
+
         self.extending_lifetime_secret = uuid4()
         subject = f'Your server will be deleted on {self.removal_at}. Prolong it now.'
-        msg = f'''
+        msg = f"""
 Your server {self} is scheduled to be removed on {self.removal_at}.
 If you want to keep if, use this link to extend its lifetime by {self.server_type.prolong_by_days} days:
 {site}{reverse_lazy('server-prolong', kwargs=dict(pk=self.id, secret=self.extending_lifetime_secret))}.
-'''
+"""
 
         email = self.user.email
         if not email:
@@ -252,8 +257,8 @@ If you want to keep if, use this link to extend its lifetime by {self.server_typ
         if not days_count:
             return self
         self.removal_at = self.removal_at + timedelta(
-                days=days_count,
-            )
+            days=days_count,
+        )
         self.extending_lifetime_secret = None
         self.info_mail_sent = False
         self.save()

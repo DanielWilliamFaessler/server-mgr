@@ -43,7 +43,9 @@ class ServerCreateView(ServerMixin, CreateView):
 
     def get_form(self, *args, **kwargs):
         form = super().get_form(*args, **kwargs)
-        form.fields['server_type'].queryset = ServerVariant.get_allowed_variants(self.request.user)
+        form.fields[
+            'server_type'
+        ].queryset = ServerVariant.get_allowed_variants(self.request.user)
         return form
 
     def form_valid(self, form):
@@ -84,9 +86,9 @@ class ServerDeleteView(ServerMixin, DeleteView):
 class ServerProlongView(ServerMixin, DeleteView):
     # FIXME: check for secret and deny access
     template_name = 'server_mgr/server_prolong.html'
-    success_url = reverse_lazy('server-list')    
+    success_url = reverse_lazy('server-list')
     fields = ['server_type']
-    
+
     def get_object(self, *args, **kwargs):
         obj = super().get_object(*args, **kwargs)
         secret = self.kwargs['secret']
@@ -111,4 +113,3 @@ class ServerRestartView(ServerMixin, DeleteView):
         success_url = self.get_success_url()
         self.object.reboot_server(self.request.user)
         return HttpResponseRedirect(success_url)
- 

@@ -27,9 +27,9 @@ def run_cleanup():
 
 
 def run_info_mail_send():
-    '''
+    """
     renewal is only available 4 weeks before the deadline.
-    '''
+    """
 
     in_4_weeks = timezone.now() + timedelta(weeks=4)
     unsent_servers = (

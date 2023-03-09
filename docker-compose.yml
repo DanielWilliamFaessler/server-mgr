@@ -63,9 +63,9 @@ services:
     command: >-
       dockerize -wait tcp://django-db:5432 -timeout 30s
       poetry run ./manage.py runserver_plus 0.0.0.0:8000
-    # command: gunicorn config.asgi:application -b 0.0.0.0:8000 -k uvicorn.workers.UvicornWorker --reload
-    # command: gunicorn config.wsgi --reload
-    # command: gunicorn config.asgi:application -b 0.0.0.0:8000 -w 3 -k uvicorn.workers.UvicornWorker
+    # command: poetry run gunicorn config.asgi:application -b 0.0.0.0:8000 -k uvicorn.workers.UvicornWorker --reload
+    # command: poetry run gunicorn config.wsgi --reload
+    # command: poetry run gunicorn config.asgi:application -b 0.0.0.0:8000 -w 3 -k uvicorn.workers.UvicornWorker
     volumes:
       - django-static-files:/files/static
       - django-media-files:/files/media
@@ -123,8 +123,12 @@ services:
   maildev:
     image: djfarrelly/maildev
     command: >-
-      bin/maildev --base-pathname /maildev -w 8000 -s 1025 --incoming-user
-      user --incoming-pass password
+      bin/maildev 
+      --base-pathname /maildev
+      -w 8000
+      -s 1025
+      --incoming-user user
+      --incoming-pass password
     logging:
       <<: *logging
 

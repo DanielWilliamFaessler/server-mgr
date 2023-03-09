@@ -59,18 +59,20 @@ services:
     build:
       context: backend/
       dockerfile: ../docker/backend.dockerfile
-      target: dev
-    entrypoint: dockerize -wait tcp://django-db:5432 -timeout 30s
-    command: ./manage.py runserver_plus 0.0.0.0:8000
+      target: prod
+    command: >-
+      dockerize -wait tcp://django-db:5432 -timeout 30s
+      poetry run ./manage.py runserver_plus 0.0.0.0:8000
     # command: gunicorn config.asgi:application -b 0.0.0.0:8000 -k uvicorn.workers.UvicornWorker --reload
     # command: gunicorn config.wsgi --reload
     # command: gunicorn config.asgi:application -b 0.0.0.0:8000 -w 3 -k uvicorn.workers.UvicornWorker
-    user: "1000:1000"
     volumes:
       - django-static-files:/files/static
       - django-media-files:/files/media
-      - ./backend:/app
+      # - ./backend:/app
     environment: &env
+      # override this when your user is not 1000!
+      USER_ID: 1000
       DEBUG: "True"
       DJANGO_SECRET_KEY: django-insecure-change-me-in-production!!!!
       DJANGO_DATABASE_URL: psql://django:a-password@django-db:5432/app
@@ -93,14 +95,19 @@ services:
   cleanup:
     <<: *backend
     command: >-
-      ./manage.py runscript cleanup
+      poetry run ./manage.py runscript cleanup
     logging:
       <<: *logging
 
   setup-backend:
     <<: *backend
+    # poetry install --no-interaction --no-ansi is needed for development only
+    # since we mount the folder
     command: >-
-      bash -c './manage.py migrate && ./manage.py collectstatic --noinput'
+      bash -c '
+      poetry install --no-interaction --no-ansi
+      && poetry run ./manage.py migrate
+      && poetry run ./manage.py collectstatic --noinput'
     logging:
       <<: *logging
 

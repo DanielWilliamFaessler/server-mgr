@@ -8,3 +8,4 @@ _app/
 app_/
 nb/.*
 .env
+.venv/

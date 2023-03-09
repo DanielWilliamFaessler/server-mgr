@@ -1,13 +1,18 @@
 # syntax=docker/dockerfile:1
 
-FROM python:3.11 as base
+# switch to official version when https://github.com/python-poetry/poetry/issues/4036 is resolved
+FROM mateusoliveira43/poetry:1.4-python3.11 as base
 
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update \
     && apt-get install -y \
     wget \
     curl \
-    && rm -rf /var/lib/apt/lists/*
+    super \
+    gosu \
+    && rm -rf /var/lib/apt/lists/* \
+    # verify that the binary works
+	gosu nobody true
 
 RUN curl -LO https://releases.hashicorp.com/terraform/1.3.9/terraform_1.3.9_linux_amd64.zip \
     && unzip terraform_1.3.9_linux_amd64.zip \
@@ -25,29 +30,34 @@ ENV PYTHONFAULTHANDLER=1 \
     PYTHONHASHSEED=random \
     PIP_NO_CACHE_DIR=off \
     PIP_DISABLE_PIP_VERSION_CHECK=on \
-    PIP_DEFAULT_TIMEOUT=100 \
-    POETRY_VERSION_SMALLER_AS=2 \
-    POETRY_VIRTUALENVS_CREATE=false
-
-WORKDIR /app
+    PIP_DEFAULT_TIMEOUT=100
 
 ### latest dockerize version
-RUN wget -O - $(wget -O - https://api.github.com/repos/powerman/dockerize/releases/latest | grep -i /dockerize-$(uname -s)-$(uname -m)\" | cut -d\" -f4) | install /dev/stdin /usr/local/bin/dockerize
+# RUN wget -O - $(wget -O - https://api.github.com/repos/powerman/dockerize/releases/latest | grep -i /dockerize-$(uname -s)-$(uname -m)\" | cut -d\" -f4) | install /dev/stdin /usr/local/bin/dockerize
+## Specific dockerize version
+RUN curl -sfL https://github.com/powerman/dockerize/releases/download/v0.19.0/dockerize-`uname -s`-`uname -m` | install /dev/stdin /usr/local/bin/dockerize
 
-RUN pip install "poetry<$POETRY_VERSION_SMALLER_AS"
+
+ENV POETRY_CACHE_DIR=/app/.cache USERNAME=py HOME=/app WORKDIR=/app/${PROJECT_FOLDER}
+RUN mkdir -p ${POETRY_CACHE_DIR}
+
+WORKDIR ${WORKDIR}
+
+ADD entrypoint.sh /entrypoint/entrypoint.sh
+
+ENTRYPOINT ["/entrypoint/entrypoint.sh"]
+
+# DEVELOPMENT
+FROM base as dev
+
+RUN chown -R ${USERNAME} /app
+USER ${USERNAME}
+
+# PRODUCTION
+FROM base as prod
 
 ADD ./poetry.lock ./pyproject.toml /app/
 
-FROM base as dev
+RUN poetry install --no-interaction --no-ansi --no-root
 
-RUN poetry install --no-interaction --no-ansi
-
-WORKDIR /app/${PROJECT_FOLDER}
-
-FROM base as deploy
-
-ADD ./ /app/
-
-WORKDIR /app/${PROJECT_FOLDER}
-
-RUN poetry install --no-dev --no-interaction --no-ansi
+ADD . /app/

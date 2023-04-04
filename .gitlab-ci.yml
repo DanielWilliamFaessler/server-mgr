@@ -9,7 +9,6 @@ run-pytest:
   stage: tests
   script:
     - docker compose -f docker-compose.testing.yml build --quiet
-    - docker compose -f docker-compose.testing.yml run --rm backend poetry install
     - docker compose -f docker-compose.testing.yml up -d --quiet-pull
     - docker compose -f docker-compose.testing.yml run --rm backend poetry run pytest
     - docker compose -f docker-compose.testing.yml run --rm backend poetry run mypy .

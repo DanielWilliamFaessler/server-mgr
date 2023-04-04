@@ -1,3 +1,5 @@
+# mypy: disable-error-code=import
+
 import importlib
 from django.contrib import admin
 from django.urls import path, re_path, include
@@ -7,7 +9,7 @@ import debug_toolbar
 from allauth.account.views import confirm_email, login, logout
 from allauth.socialaccount import providers
 
-providers_urlpatterns = []
+providers_urlpatterns = []  # type: ignore[var-annotated]
 
 for provider in providers.registry.get_list():
     prov_mod = importlib.import_module(provider.get_package() + '.urls')
@@ -22,15 +24,14 @@ allauth_urls = [
     ),
     path('login/', login, name='account_login'),
     path('logout/', logout, name='account_logout'),
-    path('signup/', login, name='account_signup'),  # disable email signup
+    # disable email signup by overriding the with the login url
+    path('signup/', login, name='account_signup'),
 ]
 
 urlpatterns = [
     path(f'admin/', admin.site.urls),
     path(f'__debug__/', include(debug_toolbar.urls)),
-    # disable local registration
     path(f'accounts/', include(allauth_urls)),
-    # path(f'accounts/', include('allauth.urls')),
     path(f'', include('core.urls')),
-    path(f'', include('server_mgr.urls')),
+    path(f'servers/', include('server.urls')),
 ]

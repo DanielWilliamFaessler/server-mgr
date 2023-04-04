@@ -20,22 +20,29 @@ uvicorn = "^0.18.2"
 gunicorn = "^20.1.0"
 django-allauth = "^0.51.0"
 # git needs to be used until https://github.com/django-extensions/django-extensions/pull/1736 is released
-django-extensions = {git = "https://github.com/django-extensions/django-extensions.git", rev = "2e84f6f1dfaea3a111c861ae516b0c022d7e6e08"}
-# django-extensions = "^3.2.0"
+# django-extensions = {git = "https://github.com/django-extensions/django-extensions.git", rev = "2e84f6f1dfaea3a111c861ae516b0c022d7e6e08"}
+django-extensions = "^3.2.1"
 django-extra-fields = "^3.0.2"
 django-bootstrap5 = "^22.2"
 hcloud = "^1.18.2"
-
-[tool.poetry.dev-dependencies]
-pytest-django = "^4.5.2"
-pytest = "^7.1.2"
-mypy = "^0.971"
-isort = "^5.10.1"
-blue = "^0.9.1"
-autoflake = "^1.4"
+celery = "^5.2.7"
+django-celery-results = "^2.4.0"
+django-celery-beat = "^2.4.0"
+flower = "^1.2.0"
+celery-progress = "^0.2"
+django-user-messages = "^1.0.0"
+icecream = "^2.1.3"
 
 [tool.poetry.group.dev.dependencies]
 ipython = "^8.10.0"
+pytest-celery = "^0.0.0"
+pytest-django = "^4.5.2"
+pytest = "^7.1.2"
+mypy = "^1.1.1"
+isort = "^5.10.1"
+blue = "^0.9.1"
+autoflake = "^1.4"
+django-stubs = {extras = ["compatible-mypy"], version = "^1.16.0"}
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

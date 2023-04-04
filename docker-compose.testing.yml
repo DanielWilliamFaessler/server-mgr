@@ -1,56 +1,6 @@
 version: "3.8"
 services:
 
-  proxy:
-    image: geometalab/env-configurable-caddy
-    environment:
-      # See https://caddyserver.com/docs/quick-starts/caddyfile for details
-      # about the config file; below is an example
-      CADDY_CONFIG: |
-        # internal ssl, no valid certs though!
-        localhost:8000 {
-          route {
-            handle /serve-files/media* {
-              uri strip_prefix /serve-files
-              file_server {
-                root /media-files
-                browse
-              }
-            }
-            handle /serve-files/static* {
-              uri strip_prefix /serve-files
-              file_server {
-                root /static-files
-                browse
-              }
-            }
-            reverse_proxy /maildev* {
-              to maildev:8000
-            }
-            reverse_proxy /flower* {
-              to flower:5566
-            }
-            reverse_proxy /* {
-              to backend:8000
-            }
-          }
-        }
-        :15672 {
-          # login via default user name password, see below
-          reverse_proxy broker:15672
-        }
-    volumes:
-      - django-static-files:/static-files
-      - django-media-files:/media-files
-    ports:
-      - '8000:8000'
-      - '15672:15672'
-    logging:
-      &logging
-      driver: json-file
-      options:
-        max-size: 50m
-
   django-db:
     image: postgres:15
     environment:
@@ -60,21 +10,17 @@ services:
       PGDATA: /var/lib/postgresql/data/pgdata
     volumes:
       - django-db:/var/lib/postgresql/data
-    logging:
-      <<: *logging
 
   django-cache:
     image: memcached
     entrypoint: >-
       memcached -m 64
-    logging:
-      <<: *logging
 
   backend: &backend
     build:
       context: backend/
       dockerfile: ../docker/backend.dockerfile
-      target: dev
+      target: prod
     # restart 3 times when failing, then give up
     restart: on-failure:3
     # only wait for POETRY_CACHE_DIR (/app/.cache) in development.
@@ -83,18 +29,13 @@ services:
     command: >-
       dockerize -wait-list "tcp://django-db:5432 file:///app/.cache/cache" -timeout 30s
       poetry run gunicorn config.wsgi --reload -b 0.0.0.0:8000
-    # poetry run ./manage.py runserver_plus 0.0.0.0:8000
-    # production examples:
-    # command: poetry run gunicorn config.wsgi
-    # command: poetry run gunicorn config.asgi:application -b 0.0.0.0:8000 -w 3 -k uvicorn.workers.UvicornWorker
     volumes:
       - django-static-files:/files/static-storage
       - django-media-files:/files/media-storage
-      - ./backend:/app
     environment: &env
       # override this when your user is not 1000!
       USER_ID: 1000
-      DJANGO_DEBUG: "True"
+      DJANGO_DEBUG: "False"
       DJANGO_SECRET_KEY: django-insecure-change-me-in-production!!!!
       DJANGO_DATABASE_URL: psql://django:a-password@django-db:5432/app
       DJANGO_CACHE_URL: pymemcache://django-cache:11211
@@ -111,10 +52,7 @@ services:
       DJANGO_BROKER_URL: 'amqp://user:pass@broker:5672/celery'
       # set in development to display (randomnly) debug user messages, default false
       ENABLE_USER_MESSAGES_RANDOM_DEBUG: false
-    env_file:
-      - .env
-    logging:
-      <<: *logging
+      HCLOUD_TOKEN: set-this-to-a-real-value-when-not-testing!
 
   setup-backend:
     <<: *backend
@@ -123,12 +61,8 @@ services:
     # since we mount the folder
     command: >-
       bash -c '
-      poetry config virtualenvs.options.always-copy true
-      && poetry install --no-interaction --no-ansi --no-root
-      && poetry run ./manage.py migrate
+      poetry run ./manage.py migrate
       && poetry run ./manage.py collectstatic --noinput'
-    logging:
-      <<: *logging
 
   worker:
     <<: *backend
@@ -151,21 +85,6 @@ services:
       RABBITMQ_DEFAULT_PASS: pass
       RABBITMQ_DEFAULT_VHOST: celery
 
-  # when changing the deployment setup, you may want to test the prod image locally as well.
-  # backend-deploy:
-  #   image: registry.gitlab.ost.ch:45023/ifs/internal-website/backend:${TAG:-latest}
-  #   build:
-  #     context: backend/
-  #     dockerfile: ../docker/backend.dockerfile
-  #     target: deploy
-  #   command: echo true
-
-  # Development only service
-  flower:
-    <<: *backend
-    restart: on-failure
-    command: 'poetry run celery -A config flower -l INFO --address=0.0.0.0 --port=5566 --url_prefix=flower'
-
   # Development only service
   maildev:
     image: djfarrelly/maildev
@@ -176,8 +95,6 @@ services:
       -s 1025
       --incoming-user user
       --incoming-pass password
-    logging:
-      <<: *logging
 
   # Development only service
   correct-permissions:

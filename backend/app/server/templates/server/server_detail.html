@@ -1,0 +1,118 @@
+{% extends 'core/base.html' %}
+{% load django_bootstrap5 %}
+
+{% block title %}Server Details - {{ server }}{% endblock %}
+
+{% block content %}
+    <a type="button" class="btn btn-secondary" href="{% url 'server:server-list' %}">back</a>
+    <div class="card mt-2">
+        <div class="row g-0">
+            <div class="col-md-8">
+                <div class="card-body">
+                    {% if not server.server_name %}
+                        Server not ready yet.
+                    {% endif %}
+                    
+                    <h5 class="card-title">Type: <code>{{ server.server_type }}</code></h5>
+                    
+                    <p class="card-text">State: <code>{{ server.get_server_state_display }}</code></p>
+                    
+                    {% if server.server_name %}
+                    <p class="card-text">Server Name: <code>{{ server.server_name }}</code></p>
+                    {% endif %}
+
+                    {% if server.server_password and server.server_user %}
+                        <p class="card-text">Login Username: <code>{{ server.server_user }}</code></p>
+                        <details>
+                            <summary>Login Password: (click to show)</summary>
+                            <code>{{ server.server_password }}</code>
+                        </details>
+                        <p class="card-text">SSH Example: <code>ssh://{{ server.server_user }}@{{ server.server_address }}</code></p>
+                    {% endif %}
+                    <hr />
+                    <h5 class="card-text">Logs/Traces</h5>
+                    {% if server.user_messages or server.user_traces %}
+                        <button class="btn btn-primary" type="button" data-bs-toggle="collapse" data-bs-target="#collapseUserLogs" aria-expanded="false" aria-controls="collapseUserLogs">
+                            Show/Hide logs
+                        </button>
+                        <div class="collapse mt-3" id="collapseUserLogs">
+                            <h5 class="card-text">Messages</h5>
+                            {% if server.user_messages %}
+                                <div class="card-text">
+                                    {% include 'server/snippets/log_display.html' with logs=server.user_messages logId='user_messages' %}
+                                </div>
+                            {% endif %}
+                            {% if server.user_traces %}
+                                <h5 class="card-text">Error Traces</h5>
+                                <div class="card-text">
+                                    {% include 'server/snippets/log_display.html' with logs=server.user_traces  logId='user_traces' %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% else %}
+                        <div class="card-text">
+                            No Logs or messages available.
+                        </div>
+                    {% endif %}
+
+                    {% if user.is_superuser %}
+                        {% if server.admin_messages or server.admin_traces %}
+                            <hr />
+                            <h5 class="card-text">Admin Logs/Traces</h5>
+                            <button class="btn btn-primary" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAdminLogs" aria-expanded="false" aria-controls="collapseAdminLogs">
+                                Show/Hide logs
+                            </button>
+                            <div class="collapse mt-3" id="collapseAdminLogs">
+                                {% if server.admin_messages %}
+                                    <h5 class="card-text">Messages</h5>
+                                    <div class="card-text">
+                                        {% include 'server/snippets/log_display.html' with logs=server.admin_messages  logId='admin_messages' %}
+                                    </div>
+                                {% endif %}
+                                {% if server.admin_traces %}
+                                    <h5 class="card-text">Error Traces</h5>
+                                    <div class="card-text">
+                                        {% include 'server/snippets/log_display.html' with logs=server.admin_traces logId='admin_traces' %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        {% else %}
+                            <div class="card-text">
+                                No Admin Logs or messages available.
+                            </div>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+            <div class="col-md-4 my-2">
+                <div class="card-text">
+                    <div class="d-grid gap-2 col-6 mx-auto">
+                        <h5 class="card-title">Actions</code></h5>
+
+                        {% if server.availables_actions.is_restartable %}
+                        <a href="{% url 'server:server-reboot' server.id %}" class="btn btn-secondary">restart server</a>
+                        {% endif %}
+                        
+                        {# TODO: find the server state and show start/stop based on state #}
+                        {% if server.availables_actions.is_stoppable %}
+                            <a href="{% url 'server:server-stop' server.id %}" class="btn btn-secondary">stop server</a>
+                        {% endif %}
+                        {% if server.availables_actions.is_startable %}
+                            <a href="{% url 'server:server-start' server.id %}" class="btn btn-secondary">start server</a>
+                        {% endif %}
+
+                        {% if server.server_type.prolong_by_days and server.extending_lifetime_secret %}
+                            <a href="{% url 'server:server-prolong' server.id server.extending_lifetime_secret %}" class="btn btn-success">prolong server</a>
+                        {% endif %}
+                    
+                        {% if server.availables_actions.is_pw_resetable %}
+                            <a href="{% url 'server:server-pw-reset' server.id %}" class="btn btn-warning">reset password</a>
+                        {% endif %}
+
+                        <a href="{% url 'server:server-delete' server.id %}" class="btn btn-danger">delete server</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

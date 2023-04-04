@@ -1,10 +1,11 @@
-.vscode
-.mypy_cache
 docker-stack.yml
 app.egg-info
 __pycache__/
-.pytest_cache/
-_app/
-app_/
-nb/.*
-.env
+
+# ignore all hidden files
+.*
+
+# explicitly allow some hidden files
+!.env-dist
+!.gitignore
+!.gitlab-ci.yml

@@ -1,11 +1,27 @@
 # syntax=docker/dockerfile:1
 
-FROM python:3.11 as base
+# switch to official version when https://github.com/python-poetry/poetry/issues/4036 is resolved
+FROM mateusoliveira43/poetry:1.4.1-python3.11.2-bullseye as base
 
-# ENV DEBIAN_FRONTEND=noninteractive
-# RUN apt-get update \
-#     && apt-get install -y \
-#     && rm -rf /var/lib/apt/lists/*
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update \
+    && apt-get install -y \
+    wget \
+    curl \
+    super \
+    gosu \
+    && rm -rf /var/lib/apt/lists/* \
+    # verify that the binary works
+	gosu nobody true
+
+RUN curl -LO https://releases.hashicorp.com/terraform/1.3.9/terraform_1.3.9_linux_amd64.zip \
+    && unzip terraform_1.3.9_linux_amd64.zip \
+    && install -o root -g root -m 0755 terraform /usr/local/bin/terraform
+
+RUN curl -LO "https://dl.k8s.io/release/v1.26.0/bin/linux/amd64/kubectl" \
+  && curl -LO "https://dl.k8s.io/release/v1.26.0/bin/linux/amd64/kubectl.sha256" \
+  && echo "$(cat kubectl.sha256) kubectl" | sha256sum --check --quiet --strict \
+  && install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
 
 ENV PROJECT_FOLDER=app
 
@@ -15,28 +31,34 @@ ENV PYTHONFAULTHANDLER=1 \
     PIP_NO_CACHE_DIR=off \
     PIP_DISABLE_PIP_VERSION_CHECK=on \
     PIP_DEFAULT_TIMEOUT=100 \
-    POETRY_VERSION_SMALLER_AS=2 \
-    POETRY_VIRTUALENVS_CREATE=false
-
-WORKDIR /app
+    VIRTUALENV_ALWAYS_COPY=1
 
 ### latest dockerize version
-RUN wget -O - $(wget -O - https://api.github.com/repos/powerman/dockerize/releases/latest | grep -i /dockerize-$(uname -s)-$(uname -m)\" | cut -d\" -f4) | install /dev/stdin /usr/local/bin/dockerize
+# RUN wget -O - $(wget -O - https://api.github.com/repos/powerman/dockerize/releases/latest | grep -i /dockerize-$(uname -s)-$(uname -m)\" | cut -d\" -f4) | install /dev/stdin /usr/local/bin/dockerize
+## Specific dockerize version
+RUN curl -sfL https://github.com/powerman/dockerize/releases/download/v0.19.0/dockerize-`uname -s`-`uname -m` | install /dev/stdin /usr/local/bin/dockerize
 
-RUN pip install "poetry<$POETRY_VERSION_SMALLER_AS"
+ENV POETRY_CACHE_DIR=/app/.cache USERNAME=py HOME=/app WORKDIR=/app/${PROJECT_FOLDER}
+RUN mkdir -p ${POETRY_CACHE_DIR}
 
-ADD ./poetry.lock ./pyproject.toml /app/
+WORKDIR ${WORKDIR}
 
+ADD entrypoint.sh /entrypoint/entrypoint.sh
+
+RUN useradd -s /bin/bash --no-create-home --gid 100 -d ${HOME} ${USERNAME}
+
+ENTRYPOINT ["/entrypoint/entrypoint.sh"]
+
+# DEVELOPMENT
 FROM base as dev
 
-RUN poetry install --no-interaction --no-ansi
+USER ${USERNAME}
 
-WORKDIR /app/${PROJECT_FOLDER}
+# PRODUCTION
+FROM base as prod
 
-FROM base as deploy
+ADD --chown=${USERNAME}:100 ./poetry.lock ./pyproject.toml /app/
 
-ADD ./ /app/
+RUN poetry install --no-interaction --no-ansi --no-root
 
-WORKDIR /app/${PROJECT_FOLDER}
-
-RUN poetry install --no-dev --no-interaction --no-ansi
+ADD --chown=${USERNAME}:100 . /app/

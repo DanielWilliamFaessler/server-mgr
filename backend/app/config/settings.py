@@ -11,11 +11,13 @@ https://docs.djangoproject.com/en/4.0/ref/settings/
 """
 
 from pathlib import Path
-import environ
+import environ   # type: ignore[import]
+from icecream import ic   # type: ignore[import]
+
 
 env = environ.Env(
     # set casting, default value
-    DEBUG=(bool, False)
+    DJANGO_DEBUG=(bool, False)
 )
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -32,7 +34,11 @@ SECRET_KEY = env('DJANGO_SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 # False if not in os.environ because of casting above
-DEBUG = env('DEBUG')
+DEBUG = env('DJANGO_DEBUG')
+
+ic.disable()
+if DEBUG:
+    ic.enable()
 
 ALLOWED_HOSTS = env.list('DJANGO_ALLOWED_HOSTS', default=[])
 
@@ -46,20 +52,23 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.sites',
-    # django_bootstrap5
-    'django_bootstrap5',
     # own apps
     'core',
-    'server_mgr',
-    # allauth / socialauth
+    'server',
+    # third party apps
     'allauth',
     'allauth.account',
     'allauth.socialaccount',
     'allauth.socialaccount.providers.gitlab',
-    # other
+    'django_bootstrap5',
     'django_extensions',
     'debug_toolbar',
     'corsheaders',
+    'user_messages',
+    # worker/celery
+    'django_celery_results',
+    'django_celery_beat',
+    'celery_progress',
 ]
 
 MIDDLEWARE = [
@@ -146,7 +155,6 @@ LANGUAGE_CODE = env.str('DJANGO_LANGUAGE_CODE', 'de-ch')
 TIME_ZONE = env.str('DJANGO_TIME_ZONE', 'Europe/Zurich')
 USE_I18N = True
 USE_TZ = True
-
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.0/howto/static-files/
@@ -258,7 +266,7 @@ EMAIL_CONFIG = env.email(
 )
 vars().update(EMAIL_CONFIG)
 EMAIL_DEFAULT_FROM = env.str('DJANGO_EMAIL_DEFAULT_FROM')
-EMAIL_ADMINS = [
+ADMINS = [
     ('Dominic Klinger', 'dominic.klinger@ost.ch'),
     ('Raphael Das Gupta', 'raphael.dasgupta@ost.ch'),
     ('Nicola Jordan', 'nicola.jordan@ost.ch'),
@@ -266,3 +274,36 @@ EMAIL_ADMINS = [
 EMAIL_SUBJECT_PREFIX = '[Server-Mgr] '
 
 AUTH_USER_MODEL = 'core.User'
+
+# CELERY Config
+
+# Celery Configuration Options
+CELERY_BROKER_URL = env.str('DJANGO_BROKER_URL')
+
+CELERY_TIMEZONE = TIME_ZONE
+CELERY_TASK_TRACK_STARTED = True
+# in seconds
+CELERY_TASK_TIME_LIMIT = 30 * 60
+CELERY_RESULT_BACKEND = 'django-db'
+CELERY_CACHE_BACKEND = 'django-cache'
+CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
+
+# the schedule can be found in 'config/celery.py'
+# CELERY_BEAT_SCHEDULE
+
+# set this to a lower number if this should signify a possible breach
+# else set this as high to allow deletion of many fields at the same time
+# in the django admin
+DATA_UPLOAD_MAX_NUMBER_FIELDS = env.int(
+    'DATA_UPLOAD_MAX_NUMBER_FIELDS', default=12000
+)
+
+SILENCED_SYSTEM_CHECKS = [
+    #  See https://django-user-messages.readthedocs.io/en/latest/: user_messages.context_processors.messages
+    'admin.E404',
+]
+
+ENABLE_USER_MESSAGES_RANDOM_DEBUG = env.bool(
+    'DJANGO_ENABLE_USER_MESSAGES_RANDOM_DEBUG',
+    default=False,
+)

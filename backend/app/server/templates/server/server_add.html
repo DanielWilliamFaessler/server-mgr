@@ -1,0 +1,17 @@
+{% extends 'core/base.html' %}
+{% load django_bootstrap5 %}
+
+{% block title %}Add new Instance{% endblock %}
+
+{% block content %}
+    <form method="post">
+        {% csrf_token %}
+
+        {% bootstrap_form form layout=layout size=size %}
+
+        {% bootstrap_button button_class="btn-success" button_type="submit" content="OK" %}
+        <a type="button" class="btn btn-primary" href="{% url 'server:server-list' %}">
+            Cancel
+        </a>
+    </form>
+{% endblock %}

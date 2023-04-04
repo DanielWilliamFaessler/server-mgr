@@ -5,23 +5,26 @@
 {% block bootstrap5_before_content %}
 <nav class="navbar navbar-expand-lg navbar-light bg-light">
     <div class="container-fluid">
-        <a class="navbar-brand" href="/">Server Mgr</a>
+        <a class="navbar-brand" href="/">Self Service Portal</a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse" id="navbarSupportedContent">
             <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                <li class="nav-item">
-                    <a class="nav-link active" aria-current="page" href="{% url 'home' %}">Home</a>
-                </li>
+                {% if not user.is_authenticated %}
+                    <li class="nav-item">
+                        <a class="nav-link active" aria-current="page" href="{% url 'core:home' %}">Home</a>
+                    </li>
+                {% endif %}
+
                 {% if user.is_authenticated %}
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'server-list' %}">Server</a>
+                        <a class="nav-link" href="{% url 'server:server-list' %}">Server</a>
                     </li>
                 {% endif %}
             </ul>
         </div>
-        
+
         <div class="d-flex">
             {% if not user.is_authenticated %}
                 <a type="button" href="{% provider_login_url "gitlab" %}" class="btn btn-warning">Login via gitlab.ost.ch</a>
@@ -33,11 +36,44 @@
 </nav>
 {% autoescape off %}{% bootstrap_messages %}{% endautoescape %}
 {% endblock %}
-
 {% block bootstrap5_content %}
     <div class="container">
-        <h1>{% block title %}Server Mgt{% endblock %}</h1>
+        <div id="user-messages">
+        </div>
+        <h1>{% block title %}"Server and Service" Self Service{% endblock %}</h1>
         {% block content %}{% endblock %}
     </div>
+{% endblock %}
 
+{% block bootstrap5_extra_script %}
+{{ block.super }}
+<script>
+    window.addEventListener("DOMContentLoaded", (event) => {
+        const refetchEveryMilliseconds = 2000;
+        var messageContainer = document.getElementById("user-messages");
+        var url = "{% url 'core:user-messages-snippet' %}";
+        if (messageContainer) {
+            const setContent = (htmlContent) => {
+                messageContainer.insertAdjacentHTML("beforeend", htmlContent);
+            }
+            const updateMessages = () => {
+                fetch(url).then((response) => {
+                    console.debug("fetching messages for {{ request.user }}");
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    return response.text()
+                }).then((html) => {
+                    setContent(html)
+                }).catch((error) => {
+                    console.error(error);
+                });
+                setTimeout(() => {
+                    updateMessages()
+                }, refetchEveryMilliseconds);
+            }
+            updateMessages();
+        }
+    });
+</script>
 {% endblock %}

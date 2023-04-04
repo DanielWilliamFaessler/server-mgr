@@ -1,0 +1,30 @@
+{% extends 'core/base.html' %}
+{% load django_bootstrap5 %}
+
+{% block title %}Server List{% endblock %}
+
+{% block content %}
+    <div class="alert alert-warning" role="alert">
+        When the instance is deleted, your data is being destroyed as well.
+        Please take care to backup your needed data!
+    </div>
+    
+    <a type="button" class="btn btn-primary" href="{% url 'server:server-add' %}">Create new instance</a>
+    
+    {% for server in servers %}
+    <div class="card mt-2">
+        <div class="card-body">
+        <h5 class="card-title">
+            {{ server.server_type }}
+            {% if user.is_superuser %}
+                ({{ server.user.username }})
+            {% endif %}
+            {% if not server.server_name %}
+                Server not ready yet.
+            {% endif %}
+        </h5>
+        <a class="btn btn-info" href="{% url 'server:server-details' server.id %}">Details</a> (delete, reset, logs, etc)
+        </div>
+    </div>
+    {% endfor %}
+{% endblock %}

@@ -1,0 +1,29 @@
+<div class="accordion accordion-flush" id="{{ logId }}">
+
+{% for entry in logs %}
+    <div class="accordion-item">
+        <h2 class="accordion-header" id="{{ logId }}-{{ forloop.counter }}">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#{{ logId }}-flush-collapse{{ forloop.counter }}" aria-expanded="false" aria-controls="flush-collapseOne">
+                {{ entry.created }} ({{ entry.task_name }} )
+            </button>
+        </h2>
+        <div id="{{ logId }}-flush-collapse{{ forloop.counter }}" class="accordion-collapse collapse" aria-labelledby="{{ logId }}-{{ forloop.counter }}" data-bs-parent="#{{ logId }}">
+            <div class="accordion-body">
+                {{ entry }} {{ logId }}
+                {% if logId == 'user_messages' %}
+                    {{ entry.user_message|linebreaksbr|safe }}
+                {% endif %}
+                {% if logId == 'user_traces' %}
+                    {{ entry.user_trace|linebreaksbr|safe }}
+                {% endif %}
+                {% if logId == 'admin_messages' %}
+                    {{ entry.admin_message|linebreaksbr|safe }}
+                {% endif %}
+                {% if logId == 'admin_traces' %}
+                    {{ entry.admin_trace|linebreaksbr|safe }}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+{% endfor %}
+</div>

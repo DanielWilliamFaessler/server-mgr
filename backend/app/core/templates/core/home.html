@@ -1,24 +1,14 @@
 {% extends 'core/base.html' %}
 {% load django_bootstrap5 socialaccount %}
 
-{% block title %}Home - Server Mgt{% endblock %}
+{% block title %}Home{% endblock %}
 
 {% block content %}
     <h3>Server Mgt</h3>
     {% if user.is_authenticated %}
-        <a type="button" class="btn btn-primary" href="{% url 'server-list' %}">Manage your Instance(s)</a>
+        <a type="button" class="btn btn-primary" href="{% url 'server:server-list' %}">Manage your Instance(s)</a>
     {% else %}
         You are not logged in. Please do so using the giltab.ost instance.
         <a type="button" href="{% provider_login_url "gitlab" %}" class="btn btn-primary">Login</a>
     {% endif %}
-    <p>
-        Forgot your laptop? Reformatted your harddrive? Issues with our "Übungsblätter"?
-        Start your instance here.
-    </p>
-    <div class="alert alert-warning" role="alert">
-        These are one-off instances and turn off automatically after 4h.
-        All your data will be erased.
-        You get full access (inclusive root password), please
-        backup your data yourself, if needed.
-    </div>
 {% endblock %}

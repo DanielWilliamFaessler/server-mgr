@@ -49,13 +49,16 @@ hetzner_status_to_server_state = {
 
 
 def _get_server_infos_from_hetzner_server(server: HetznerServer):
+    address = ""
+    if server.public_net and server.public_net.primary_ipv4 and server.public_net.primary_ipv4.ip:
+        address = server.public_net.primary_ipv4.ip
     return ServerInfo(
-        server_id=server.id,
-        server_name=server.name,
-        server_state=hetzner_status_to_server_state[server.status],
+        server_id=str(server.id),
+        server_name=server.name or "",
+        server_state=hetzner_status_to_server_state[server.status or "unknown"],
         created=server.created,
-        server_address=server.public_net.primary_ipv4.ip,
-        labels=server.labels,
+        server_address=address,
+        labels=server.labels or dict(),
     )
 
 
@@ -84,9 +87,10 @@ def create_hetzner_server(
     # image = Image(name='superset', type='snapshot')
     image = [
         i
-        for i in client.images.get_all(type='snapshot')
+        for i in client.images.get_all(type=['snapshot'])
         if i.description == image_name
     ][0]
+
     location = client.locations.get_by_name(location)
     created_date = (
         str(timezone.now().isoformat('-', 'minutes'))

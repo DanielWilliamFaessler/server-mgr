@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import asdict
 from datetime import timedelta
 from typing import TYPE_CHECKING
+from django.template import Context, Template
 
 from icecream import ic   # type: ignore[import]
 
@@ -20,6 +21,7 @@ from celery import shared_task   # type: ignore[import]
 from celery.utils.log import get_task_logger   # type: ignore[import]
 
 from server.server_registration import (
+    ExecutionMessage,
     ServerCreatedInfo,
     ServerDeletedInfo,
     ServerInfo,
@@ -235,6 +237,9 @@ def create_server(self, *, instance_id: int):
             '{server_class} is not a ServerTypeBase and canot create a server'
         )
     result = server_class.create_instance(model_instance_id=server_instance.id)
+    
+    t = Template(server_instance.server_type.user_message)
+    result.message = ExecutionMessage(t.render(context=Context(dict(server=result))))
 
     add_message_content_to_server_instance(
         self.name, self.request.id, result, server_instance

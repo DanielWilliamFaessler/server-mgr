@@ -11,16 +11,16 @@
             <div class="accordion-body">
                 {{ entry }} {{ logId }}
                 {% if logId == 'user_messages' %}
-                    {{ entry.user_message|linebreaksbr|safe }}
+                    {{ entry.user_message|safe }}
                 {% endif %}
                 {% if logId == 'user_traces' %}
-                    {{ entry.user_trace|linebreaksbr|safe }}
+                    {{ entry.user_trace|safe }}
                 {% endif %}
                 {% if logId == 'admin_messages' %}
-                    {{ entry.admin_message|linebreaksbr|safe }}
+                    {{ entry.admin_message|safe }}
                 {% endif %}
                 {% if logId == 'admin_traces' %}
-                    {{ entry.admin_trace|linebreaksbr|safe }}
+                    {{ entry.admin_trace|safe }}
                 {% endif %}
             </div>
         </div>

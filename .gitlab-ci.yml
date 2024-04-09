@@ -60,11 +60,11 @@ deploy:
     name: curlimages/curl
   script:
     # backend setup
-    - curl -f -X POST https://portainer.sifs0005.infs.ch/api/webhooks/518e677a-d5da-4bed-8532-9d26718e2603
+    - curl -f -X POST ${BACKEND_SETUP_TRIGGER}
     # cleanup service
-    - curl -f -X POST https://portainer.sifs0005.infs.ch/api/webhooks/ceca8964-4ae9-4301-ae47-86d6ba0330ca
+    - curl -f -X POST ${CLEANUP_SERVICE_TRIGGER}
     ## backend
-    - curl -f -X POST https://portainer.sifs0005.infs.ch/api/webhooks/e8649b61-2a94-4351-abca-18424231211c 
+    - curl -f -X POST ${BACKEND_TRIGGER}
   only:
     refs:
       - main

@@ -16,6 +16,11 @@ def _create_random_password(
 def _create_random_name():
     return _create_random_string(choice_pool=string.ascii_letters)
 
+terraform_directory: str = "/terraform_workspace"
+
+# Change directory to the 'terraform' directory
+os.chdir(terraform_directory)
+
 subprocess.run(["terraform","init"])
 
 # Select Terraform workspace
@@ -23,7 +28,7 @@ subprocess.run(["terraform", "workspace", "select", "default"])
 
 # Apply Terraform configuration with variable inputs
 subprocess.run(["terraform", "apply", "-auto-approve",
-                "-var", f"hcloud_token={hcloud_token}",
+                "-var", f"hcloud_token={HCLOUD_TOKEN}",
                 "-var", f"server_name={_create_random_name}",
                 "-var", f"server_password={_create_random_password}"]),
 

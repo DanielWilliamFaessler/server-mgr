@@ -44,7 +44,7 @@ RUN mkdir -p ${POETRY_CACHE_DIR}
 WORKDIR ${WORKDIR}
 
 # Add volume
-VOLUME /Terraform_Workspaces
+VOLUME /terraform_workspace
 
 ADD entrypoint.sh /entrypoint/entrypoint.sh
 

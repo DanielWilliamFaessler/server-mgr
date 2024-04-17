@@ -1,11 +1,12 @@
 docker-stack.yml
 app.egg-info
 __pycache__/
+dockerfile
 
 # ignore all hidden files
 .*
 
 # explicitly allow some hidden files
 !.env-dist
-!.gitignore
+.gitignore
 !.gitlab-ci.yml

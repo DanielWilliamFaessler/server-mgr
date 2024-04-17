@@ -1,7 +1,7 @@
 docker-stack.yml
 app.egg-info
 __pycache__/
-dockerfile
+backend.dockerfile
 
 # ignore all hidden files
 .*

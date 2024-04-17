@@ -18,7 +18,10 @@ def _create_random_name():
 
 terraform_directory: str = "/terraform_workspace"
 
-# Change directory to the 'terraform' directory
+if not os.path.isdir(terraform_directory):
+    print(f"Directory '{terraform_directory}' does not exist.")
+    exit(1)
+
 os.chdir(terraform_directory)
 
 subprocess.run(["terraform","init"])

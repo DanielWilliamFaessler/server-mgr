@@ -43,6 +43,9 @@ RUN mkdir -p ${POETRY_CACHE_DIR}
 
 WORKDIR ${WORKDIR}
 
+# Add volume
+VOLUME /Terraform_Workspaces
+
 ADD entrypoint.sh /entrypoint/entrypoint.sh
 
 RUN useradd -s /bin/bash --no-create-home --gid 100 -d ${HOME} ${USERNAME}

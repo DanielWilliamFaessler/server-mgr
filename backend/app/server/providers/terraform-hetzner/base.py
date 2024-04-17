@@ -25,6 +25,6 @@ subprocess.run(["terraform", "workspace", "select", "default"])
 subprocess.run(["terraform", "apply", "-auto-approve",
                 "-var", f"hcloud_token={hcloud_token}",
                 "-var", f"server_name={_create_random_name}",
-                "-var", f"server_name={_create_random_password}"]),
+                "-var", f"server_password={_create_random_password}"]),
 
 

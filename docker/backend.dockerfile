@@ -52,7 +52,7 @@ ENTRYPOINT ["/entrypoint/entrypoint.sh"]
 # DEVELOPMENT
 FROM base as dev
 
-USER ${USERNAME}
+# USER ${USERNAME}
 
 # PRODUCTION
 FROM base as prod

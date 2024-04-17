@@ -1,5 +1,10 @@
 #!/bin/bash
 
+#Move Terraform files
+cp -r /app/main.tf /terraform_workspace/
+cp -r /app/.terraform.lock.hcl /terraform_workspace/
+cp -r /app/versions.tf /terraform_workspace/
+
 set -ex
 
 # Add local user

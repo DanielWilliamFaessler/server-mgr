@@ -45,8 +45,6 @@ WORKDIR ${WORKDIR}
 
 # Add volume
 VOLUME /terraform_workspace
-# Add configuration files
-
 
 ADD entrypoint.sh /entrypoint/entrypoint.sh
 

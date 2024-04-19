@@ -2,7 +2,18 @@ import random
 import string
 import subprocess
 import logging
+from typing import Optional
 import os
+
+from django.utils import timezone
+
+from hcloud import Client, APIException   # type: ignore[import]
+from hcloud.servers.domain import (  # type: ignore[import]
+    Server as HetznerServer,
+)
+from hcloud.server_types.domain import (  # type: ignore[import]
+    ServerType as HetznerServerType,
+)
 
 from server.server_registration import (
     ResetPasswordMixin,
@@ -32,6 +43,7 @@ terraform_status_to_server_state = {
     'unknown': ServerState.UNKNOWN,
 }
 
+
 def _get_server_infos_from_terraform_server(server):
     return ServerInfo(
         server_id=str(server.id),
@@ -42,45 +54,112 @@ def _get_server_infos_from_terraform_server(server):
         labels=server.labels or dict(),
     )
 
+
 HCLOUD_TOKEN: str = os.environ.get('HCLOUD_TOKEN')
+
+terraform_directory: str = "/terraform_workspace"
 
 if not HCLOUD_TOKEN:
     raise ValueError('HCLOUD_TOKEN missing from environment.')
+
 
 def _create_random_string(
     size=8, choice_pool=string.ascii_letters + string.digits
 ):
     return ''.join(random.choice(choice_pool) for _ in range(size))
 
+
 def _create_random_name():
     return _create_random_string(choice_pool=string.ascii_letters)
 
-def apply_configuration(server_name, server_password, hcloud_token):
+
+def apply_configuration(server_name, server_password, hcloud_token, server_type: Optional[str] = None, server_image: Optional[str] = None, server_location: Optional[str] = None, server_labels: Optional[str] = None, server_action: Optional[str] = None):
     # Select Terraform workspace
     subprocess.run(["terraform", "workspace", "select", "default"])
 
     # Apply Terraform configuration with variable inputs
-    subprocess.run(["terraform", "apply", "-auto-approve",
-                    "-var", f"hcloud_token={HCLOUD_TOKEN}",
-                    "-var", f"server_name={server_name}",
-                    "-var", f"server_password={server_password}"]),
+    terraform_apply_args = ["terraform", "apply", "-auto-approve",
+                            "-var", f"hcloud_token={hcloud_token}",
+                            "-var", f"server_name={server_name}",
+                            "-var", f"server_password={server_password}"]
+    if server_type:
+        terraform_apply_args.extend(["-var", f"server_type={server_type}"])
+    if server_image:
+        terraform_apply_args.extend(["-var", f"server_image={server_image}"])
+    if server_location:
+        terraform_apply_args.extend(["-var", f"server_location={server_location}"])
+    if server_labels:
+        terraform_apply_args.extend(["-var", f"server_labels={server_labels}"])
+    if server_action:
+        terraform_apply_args.extend(["-var", f"server_action={server_action}"])
 
-def create_hetzner_server():
-    terraform_directory: str = "/terraform_workspace"
-    server_name: str = _create_random_name()
+    subprocess.run(terraform_apply_args)
+
+
+def _get_server_info():
+    try:
+        result = subprocess.run(['terraform', 'output'], capture_output=True, text=True, check=True)
+        output_lines = result.stdout.strip().split('\n')
+        output = {}
+        for line in output_lines:
+            parts = line.split(' = ')
+            if len(parts) == 2:
+                key = parts[0].strip()
+                value = parts[1].strip().strip('"')
+                output[key] = value
+        return ServerInfo(
+            output
+        )
+    except subprocess.CalledProcessError as e:
+        print(f"Error: {e}")
+        return None
+
+
+server_address = "128.140.110.213"
+server_id = "45964980"
+server_labels = "{}"
+server_name = "testingStuff"
+server_state = "off"
+def create_terraform_server(
+    server_variant,
+    username,
+    instance_type,
+    image_name,
+    location,
+    description: str,
+) -> ServerCreatedInfo:
+    server_name: str = f'{server_variant}-{_create_random_name()}-{_create_random_name()}'
     server_password: str = _create_random_string
+    server_type: str = instance_type
+    server_image: str = image_name
+    server_location: str = location
+    created_date = (
+        str(timezone.now().isoformat('-', 'minutes'))
+        .replace(':', '-')
+        .replace('+', '-')
+    )
+    labels = {
+        'usage': server_variant,
+        'created-on': created_date,
+        'username': username,
+    }
+
 
     if not os.path.isdir(terraform_directory):
         print(f"Directory '{terraform_directory}' does not exist.")
         exit(1)
 
     os.chdir(terraform_directory)
-
     subprocess.run(["terraform","init"])
 
-    apply_configuration(server_name, server_password, HCLOUD_TOKEN)
+    apply_configuration(server_name, server_password, HCLOUD_TOKEN, server_type, server_image, server_location, labels, server_action=None)
+    return ServerCreatedInfo(
+        **info,
+        description=description,
+        server_user='root',
+        server_password=response.root_password,
+    )
 
-create_hetzner_server()
 
 class ServerTypeTerraform(
     RestartServerMixin,
@@ -95,7 +174,7 @@ class ServerTypeTerraform(
     image_name: str = ''
 
     def create_instance(
-            self, server_name, server_type, server_image, server_location, server_labels, server_password, server_variant
+            self, model_instance_id, *args, **kwargs
     ) -> ServerCreatedInfo:
         from server.models import ProvisionedServerInstance
 
@@ -103,7 +182,7 @@ class ServerTypeTerraform(
             id=model_instance_id
         )
         username = server_instance.user.username
-        return create_hetzner_server(
+        return create_terraform_server(
             server_variant=self.server_variant,
             instance_type=self.instance_type,
             username=username,

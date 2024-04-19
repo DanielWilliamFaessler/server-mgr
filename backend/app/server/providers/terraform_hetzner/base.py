@@ -94,7 +94,23 @@ class ServerTypeTerraform(
     instance_type = 'cx21'
     image_name: str = ''
 
-    def create_instance(self, server_name, server_type, server_image, server_location, server_labels, server_password, server_variant):
+    def create_instance(
+            self, server_name, server_type, server_image, server_location, server_labels, server_password, server_variant
+    ) -> ServerCreatedInfo:
+        from server.models import ProvisionedServerInstance
+
+        server_instance = ProvisionedServerInstance.objects.get(
+            id=model_instance_id
+        )
+        username = server_instance.user.username
+        return create_hetzner_server(
+            server_variant=self.server_variant,
+            instance_type=self.instance_type,
+            username=username,
+            image_name=self.image_name,
+            location=self.location,
+            description=server_instance.server_type.description or '',
+        )
         # Write Terraform variables to a .tfvars file
         with open("terraform.tfvars", "w") as tfvars_file:
             tfvars_file.write(f"hcloud_token = \"{self.hcloud_token}\"\n")

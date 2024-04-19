@@ -1,9 +1,9 @@
-from server.providers.hetzner.base import ServerTypeHetzner
+from server.providers.terraform_hetzner.base import ServerTypeTerraform
 from server.server_registration import ServerTypeFactory
 
 
 @ServerTypeFactory.register(name_id='hetzner-superset')
-class SupersetHetznerTemplate(ServerTypeHetzner):
+class SupersetHetznerTemplate(ServerTypeTerraform):
     server_variant = 'superset'
     location = 'nbg1'
     instance_type = 'cx21'
@@ -11,7 +11,7 @@ class SupersetHetznerTemplate(ServerTypeHetzner):
 
 
 @ServerTypeFactory.register(name_id='hetzner-linux-server')
-class LinuxInstanceHetznerTemplate(ServerTypeHetzner):
+class LinuxInstanceHetznerTemplate(ServerTypeTerraform):
     server_variant = 'superset'
     location = 'nbg1'
     instance_type = 'cx21'

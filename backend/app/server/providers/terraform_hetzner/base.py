@@ -3,9 +3,8 @@ import string
 import subprocess
 import logging
 import os
-from server_registration import *
 
-from server_registration import (
+from server.server_registration import (
     ResetPasswordMixin,
     RestartServerMixin,
     ServerPasswordResetInfo,
@@ -88,8 +87,36 @@ class ServerTypeTerraform(
     ResetPasswordMixin,
     StopServerMixin,
     StartServerMixin,
-    ServerTypeBase,):
+    ServerTypeBase,
+):
     server_variant: str = ''
     location: str = ''
     instance_type = 'cx21'
     image_name: str = ''
+
+    def create_instance(self, server_name, server_type, server_image, server_location, server_labels, server_password, server_variant):
+        # Write Terraform variables to a .tfvars file
+        with open("terraform.tfvars", "w") as tfvars_file:
+            tfvars_file.write(f"hcloud_token = \"{self.hcloud_token}\"\n")
+            tfvars_file.write(f"server_name = \"{server_name}\"\n")
+            tfvars_file.write(f"server_type = \"{server_type}\"\n")
+            tfvars_file.write(f"server_image = \"{server_image}\"\n")
+            tfvars_file.write(f"server_location = \"{server_location}\"\n")
+            tfvars_file.write(f"server_labels = {json.dumps(server_labels)}\n")
+            tfvars_file.write(f"server_password = \"{server_password}\"\n")
+
+        # Run Terraform commands
+        subprocess.run(["terraform", "init"])
+        subprocess.run(["terraform", "apply", "-auto-approve"])
+
+        # Parse Terraform output to retrieve server information
+        with open("terraform.tfstate", "r") as tfstate_file:
+            tfstate_data = json.load(tfstate_file)
+            server_id = tfstate_data["resources"][0]["instances"][0]["attributes"]["id"]
+            server_address = tfstate_data["resources"][0]["instances"][0]["attributes"]["ipv4_address"]
+
+        return {
+            "server_id": server_id,
+            "server_address": server_address,
+            "server_variant": server_variant
+        }

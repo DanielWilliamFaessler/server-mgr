@@ -44,15 +44,23 @@ terraform_status_to_server_state = {
 }
 
 
-def _get_server_infos_from_terraform_server(server):
-    return ServerInfo(
-        server_id=str(server.id),
-        server_name=server.name or "",
-        server_state=terraform_status_to_server_state[server.status or "unknown"],
-        created=server.created,
-        server_address="", #I have to figure this one out later
-        labels=server.labels or dict(),
-    )
+def _get_server_info():
+    try:
+        result = subprocess.run(['terraform', 'output'], capture_output=True, text=True, check=True)
+        output_lines = result.stdout.strip().split('\n')
+        output = {}
+        for line in output_lines:
+            parts = line.split(' = ')
+            if len(parts) == 2:
+                key = parts[0].strip()
+                value = parts[1].strip().strip('"')
+                output[key] = value
+        return ServerInfo(
+            output
+        )
+    except subprocess.CalledProcessError as e:
+        print(f"Error: {e}")
+        return None
 
 
 HCLOUD_TOKEN: str = os.environ.get('HCLOUD_TOKEN')
@@ -94,25 +102,6 @@ def apply_configuration(server_name, server_password, hcloud_token, server_type:
         terraform_apply_args.extend(["-var", f"server_action={server_action}"])
 
     subprocess.run(terraform_apply_args)
-
-
-def _get_server_info():
-    try:
-        result = subprocess.run(['terraform', 'output'], capture_output=True, text=True, check=True)
-        output_lines = result.stdout.strip().split('\n')
-        output = {}
-        for line in output_lines:
-            parts = line.split(' = ')
-            if len(parts) == 2:
-                key = parts[0].strip()
-                value = parts[1].strip().strip('"')
-                output[key] = value
-        return ServerInfo(
-            output
-        )
-    except subprocess.CalledProcessError as e:
-        print(f"Error: {e}")
-        return None
 
 
 server_address = "128.140.110.213"

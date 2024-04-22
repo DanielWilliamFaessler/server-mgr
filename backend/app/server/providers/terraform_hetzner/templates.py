@@ -12,7 +12,7 @@ class SupersetHetznerTemplate(ServerTypeTerraform):
 
 @ServerTypeFactory.register(name_id='hetzner-linux-server')
 class LinuxInstanceHetznerTemplate(ServerTypeTerraform):
-    server_variant = 'superset'
+    server_variant = 'linux'
     location = 'nbg1'
-    instance_type = 'cx21'
-    image_name = 'superset'
+    instance_type = 'cx11'
+    image_name = 'ubuntu-22.04'

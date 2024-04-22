@@ -216,7 +216,7 @@ class ServerTypeTerraform(
 ):
     server_variant: str = ""
     location: str = ""
-    instance_type = "cx21"
+    instance_type = ""
     image_name: str = ""
 
     def create_instance(

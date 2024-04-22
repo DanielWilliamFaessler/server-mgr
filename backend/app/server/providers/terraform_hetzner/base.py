@@ -170,35 +170,61 @@ def status() -> ServerInfo:
     return _get_server_info()
 
 
-def reboot(server_name, server_password, HCLOUD_TOKEN, server_type, server_image, server_location, labels) -> ServerInfo:
+def reboot(server_name, server_password, server_type, server_image, server_location, labels) -> ServerInfo:
+    if not os.path.isdir(terraform_directory):
+        print(f"Directory '{terraform_directory}' does not exist.")
+        exit(1)
+
+    os.chdir(terraform_directory)
     apply_configuration(server_name, server_password, HCLOUD_TOKEN, server_type, server_image, server_location, labels, server_action="reboot")
     # wait for server to be up again
     sleep(30)
     return _get_server_info()
 
 
-def stop(server_name, server_password, HCLOUD_TOKEN, server_type, server_image, server_location, labels) -> ServerInfo:
-    apply_configuration(server_name, server_password, HCLOUD_TOKEN, server_type, server_image, server_location, labels, server_action="poweroff")
+def stop(server_name, server_password, server_type, server_image, server_location, labels) -> ServerInfo:
+    info = _get_server_info()
+    if not os.path.isdir(terraform_directory):
+        print(f"Directory '{terraform_directory}' does not exist.")
+        exit(1)
+
+    os.chdir(terraform_directory)
+    apply_configuration(info.server_name, server_password, HCLOUD_TOKEN, "", "", "", info.labels, server_action="poweroff")
     # wait for server to be up again
     sleep(30)
     return _get_server_info()
 
 
-def start(server_name, server_password, HCLOUD_TOKEN, server_type, server_image, server_location, labels) -> ServerInfo:
+def start(server_name, server_password, server_type, server_image, server_location, labels) -> ServerInfo:
+    if not os.path.isdir(terraform_directory):
+        print(f"Directory '{terraform_directory}' does not exist.")
+        exit(1)
+
+    os.chdir(terraform_directory)
     apply_configuration(server_name, server_password, HCLOUD_TOKEN, server_type, server_image, server_location, labels, server_action="poweron")
     # wait for server to be up again
     sleep(30)
     return _get_server_info()
 
 
-def reset_pw(server_name, server_password, HCLOUD_TOKEN, server_type, server_image, server_location, labels) -> ServerPasswordResetInfo:
+def reset_pw(server_name, server_password, server_type, server_image, server_location, labels) -> ServerPasswordResetInfo:
+    if not os.path.isdir(terraform_directory):
+        print(f"Directory '{terraform_directory}' does not exist.")
+        exit(1)
+
+    os.chdir(terraform_directory)
     apply_configuration(server_name, server_password, HCLOUD_TOKEN, server_type, server_image, server_location, labels, server_action=None, server_password_reset=True)
     # wait for server to be up again
     sleep(30)
     return _get_server_info()
 
 
-def destroy(server_id, server_name, server_password, HCLOUD_TOKEN, server_type, server_image, server_location, labels) -> ServerDeletedInfo:
+def destroy(server_name, server_password, server_type, server_image, server_location, labels) -> ServerDeletedInfo:
+    if not os.path.isdir(terraform_directory):
+        print(f"Directory '{terraform_directory}' does not exist.")
+        exit(1)
+
+    os.chdir(terraform_directory)
     apply_configuration(server_name, server_password, HCLOUD_TOKEN, server_type, server_image, server_location, labels, server_action=None)
     sleep(30)
     return ServerDeletedInfo(
@@ -242,29 +268,29 @@ class ServerTypeTerraform(
         self, model_instance_id: str, *args, **kwargs
     ) -> ServerInfo:
         instance = self.get_server_instance(model_instance_id)
-        return status(instance.server_id)
+        return status()
 
 
     def reset_password(
         self, model_instance_id, *args, **kwargs
     ) -> ServerPasswordResetInfo:
         instance = self.get_server_instance(model_instance_id)
-        return reset_pw(instance.server_id)
+        return reset_pw(instance.server_name, instance.server_password, instance.server_type, "", "", "")
 
 
     def start_server(self, model_instance_id, *args, **kwargs) -> ServerInfo:
         instance = self.get_server_instance(model_instance_id)
-        return start(instance.server_id)
+        return start(instance.server_name, instance.server_password, instance.server_type, "", "", "")
 
 
     def restart_server(self, model_instance_id, *args, **kwargs) -> ServerInfo:
         instance = self.get_server_instance(model_instance_id)
-        return reboot(instance.server_id)
+        return reboot(instance.server_name, instance.server_password, instance.server_type, "", "", "")
 
 
     def stop_server(self, model_instance_id, *args, **kwargs) -> ServerInfo:
         instance = self.get_server_instance(model_instance_id)
-        return stop(instance.server_id)
+        return stop(instance.server_name, instance.server_password, instance.server_type, "", "", "")
 
 
     def delete_server(

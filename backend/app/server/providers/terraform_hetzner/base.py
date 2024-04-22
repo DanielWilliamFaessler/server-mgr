@@ -70,6 +70,9 @@ def _get_server_info():
         print(f"Error: {e}")
         return None
 
+_image_name: str = "ubuntu-22.04"
+_server_type: str = "cx11"
+_server_location: str = "nbg1"
 
 HCLOUD_TOKEN: str = os.environ.get("HCLOUD_TOKEN")
 
@@ -228,8 +231,7 @@ def destroy(server_name, server_password, server_type, server_image, server_loca
     apply_configuration(server_name, server_password, HCLOUD_TOKEN, server_type, server_image, server_location, labels, server_action=None)
     sleep(30)
     return ServerDeletedInfo(
-        deleted=True,
-        server_id=server_id,
+        deleted=True
     )
 
 
@@ -241,9 +243,9 @@ class ServerTypeTerraform(
     ServerTypeBase,
 ):
     server_variant: str = ""
-    location: str = ""
-    instance_type = ""
-    image_name: str = ""
+    location: str = _server_location
+    instance_type = _server_type
+    image_name: str = _image_name
 
     def create_instance(
             self, model_instance_id, *args, **kwargs
@@ -275,22 +277,22 @@ class ServerTypeTerraform(
         self, model_instance_id, *args, **kwargs
     ) -> ServerPasswordResetInfo:
         instance = self.get_server_instance(model_instance_id)
-        return reset_pw(instance.server_name, instance.server_password, instance.server_type, "", "", "")
+        return reset_pw(instance.server_name, instance.server_password, _server_type, _image_name, _server_location, None)
 
 
     def start_server(self, model_instance_id, *args, **kwargs) -> ServerInfo:
         instance = self.get_server_instance(model_instance_id)
-        return start(instance.server_name, instance.server_password, instance.server_type, "", "", "")
+        return start(instance.server_name, instance.server_password, _server_type, _image_name, _server_location, None)
 
 
     def restart_server(self, model_instance_id, *args, **kwargs) -> ServerInfo:
         instance = self.get_server_instance(model_instance_id)
-        return reboot(instance.server_name, instance.server_password, instance.server_type, "", "", "")
+        return reboot(instance.server_name, instance.server_password, _server_type, _image_name, _server_location, None)
 
 
     def stop_server(self, model_instance_id, *args, **kwargs) -> ServerInfo:
         instance = self.get_server_instance(model_instance_id)
-        return stop(instance.server_name, instance.server_password, instance.server_type, "", "", "")
+        return stop(instance.server_name, instance.server_password, _server_type, _image_name, _server_location, None)
 
 
     def delete_server(

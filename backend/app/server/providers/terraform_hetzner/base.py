@@ -22,7 +22,7 @@ from server.server_registration import (
     ServerCreatedInfo,
     ServerDeletedInfo,
     ServerInfo,
-    ServerTypeBase
+    ServerTypeBase,
 )
 
 logger = logging.getLogger(__name__)
@@ -70,28 +70,33 @@ def _get_server_info():
         logger.exception(f'Error: {e}')
         return None
 
+
 HCLOUD_TOKEN: str = os.environ.get('HCLOUD_TOKEN')
 if not HCLOUD_TOKEN:
     raise ValueError('HCLOUD_TOKEN missing from environment.')
 
 terraform_directory: str = '/terraform_workspace'
-_location = "nbg1"
-_instance_type = "cx11"
-_image_name = "ubuntu-22.04"
+_location = 'nbg1'
+_instance_type = 'cx11'
+_image_name = 'ubuntu-22.04'
+
 
 def _create_random_string(
     size=8, choice_pool=string.ascii_letters + string.digits
 ):
     return ''.join(random.choice(choice_pool) for _ in range(size))
 
+
 def _create_random_name():
     return _create_random_string(choice_pool=string.ascii_letters)
+
 
 def _change_directory():
     if not os.path.isdir(terraform_directory):
         logger.exception(f"Directory '{terraform_directory}' does not exist.")
     else:
         os.chdir(terraform_directory)
+
 
 def apply_configuration(
     server_name,
@@ -281,10 +286,7 @@ def reset_pw(
 
 
 def destroy(
-    server_id,
-    server_name,
-    server_password,
-    labels
+    server_id, server_name, server_password, labels
 ) -> ServerDeletedInfo:
     _change_directory()
     apply_configuration(
@@ -296,11 +298,13 @@ def destroy(
         _location,
         labels,
         server_action=None,
-        destroy="destroy"
+        destroy='destroy',
     )
     sleep(30)
-    return ServerDeletedInfo(deleted=True,server_id=server_id, )
-    
+    return ServerDeletedInfo(
+        deleted=True,
+        server_id=server_id,
+    )
 
 
 class ServerTypeTerraform(
@@ -311,7 +315,7 @@ class ServerTypeTerraform(
     ServerTypeBase,
 ):
     server_variant: str = 'Linux'
-    location: str =_location
+    location: str = _location
     instance_type = _instance_type
     image_name: str = _image_name
 
@@ -386,7 +390,7 @@ class ServerTypeTerraform(
                 instance.server_id,
                 instance.server_name,
                 instance.server_password,
-                info.labels
+                info.labels,
             )
             deleted = True
         except APIException:
@@ -395,7 +399,7 @@ class ServerTypeTerraform(
                     instance.server_id,
                     instance.server_name,
                     instance.server_password,
-                    info.labels
+                    info.labels,
                 )
                 deleted = True
             except APIException:

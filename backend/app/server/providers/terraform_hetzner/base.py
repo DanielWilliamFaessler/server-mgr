@@ -4,19 +4,13 @@ import string
 import subprocess
 import logging
 import json
-from typing import Optional, Union
+from typing import Optional
 from datetime import datetime
 import os
 
 from django.utils import timezone
 
-from hcloud import Client, APIException   # type: ignore[import]
-from hcloud.servers.domain import (  # type: ignore[import]
-    Server as HetznerServer,
-)
-from hcloud.server_types.domain import (  # type: ignore[import]
-    ServerType as HetznerServerType,
-)
+from hcloud import APIException   # type: ignore[import]
 
 from server.server_registration import (
     ResetPasswordMixin,
@@ -28,8 +22,7 @@ from server.server_registration import (
     ServerCreatedInfo,
     ServerDeletedInfo,
     ServerInfo,
-    ServerTypeBase,
-    StopServerMixin,
+    ServerTypeBase
 )
 
 logger = logging.getLogger(__name__)
@@ -74,34 +67,31 @@ def _get_server_info():
             labels=labels,
         )
     except subprocess.CalledProcessError as e:
-        print(f'Error: {e}')
+        logger.exception(f'Error: {e}')
         return None
 
-
-_image_name: str = 'ubuntu-22.04'
-_server_type: str = 'cx11'
-_server_location: str = 'nbg1'
-
 HCLOUD_TOKEN: str = os.environ.get('HCLOUD_TOKEN')
-
-terraform_directory: str = '/terraform_workspace'
-
 if not HCLOUD_TOKEN:
     raise ValueError('HCLOUD_TOKEN missing from environment.')
 
+terraform_directory: str = '/terraform_workspace'
+_location = "nbg1"
+_instance_type = "cx11"
+_image_name = "ubuntu-22.04"
 
 def _create_random_string(
     size=8, choice_pool=string.ascii_letters + string.digits
 ):
     return ''.join(random.choice(choice_pool) for _ in range(size))
 
-
 def _create_random_name():
     return _create_random_string(choice_pool=string.ascii_letters)
 
-
-_server_password: str = _create_random_string()
-
+def _change_directory():
+    if not os.path.isdir(terraform_directory):
+        logger.exception(f"Directory '{terraform_directory}' does not exist.")
+    else:
+        os.chdir(terraform_directory)
 
 def apply_configuration(
     server_name,
@@ -151,20 +141,14 @@ def apply_configuration(
 
 
 def create_terraform_server(
-    server_variant,
-    username,
-    instance_type,
-    image_name,
-    location,
+    server_variant: str,
+    username: str,
     description: str,
 ) -> ServerCreatedInfo:
     server_name: str = (
         f'{server_variant}-{_create_random_name()}-{_create_random_name()}'
     )
-    server_password = _server_password
-    server_type: str = instance_type
-    server_image: str = image_name
-    server_location: str = location
+    server_password = _create_random_string()
     created_date = (
         str(timezone.now().isoformat('-', 'minutes'))
         .replace(':', '-')
@@ -177,20 +161,16 @@ def create_terraform_server(
     }
     labels_json = json.dumps(labels)
 
-    if not os.path.isdir(terraform_directory):
-        print(f"Directory '{terraform_directory}' does not exist.")
-        exit(1)
-
-    os.chdir(terraform_directory)
+    _change_directory()
     subprocess.run(['terraform', 'init'])
 
     apply_configuration(
         server_name,
         server_password,
         HCLOUD_TOKEN,
-        server_type,
-        server_image,
-        server_location,
+        _instance_type,
+        _image_name,
+        _location,
         labels_json,
     )
     info = _get_server_info()
@@ -215,23 +195,16 @@ def status() -> ServerInfo:
 def reboot(
     server_name,
     server_password,
-    server_type,
-    server_image,
-    server_location,
     labels,
 ) -> ServerInfo:
-    if not os.path.isdir(terraform_directory):
-        print(f"Directory '{terraform_directory}' does not exist.")
-        exit(1)
-
-    os.chdir(terraform_directory)
+    _change_directory()
     apply_configuration(
         server_name,
         server_password,
         HCLOUD_TOKEN,
-        server_type,
-        server_image,
-        server_location,
+        _instance_type,
+        _image_name,
+        _location,
         labels,
         server_action='reboot',
     )
@@ -243,25 +216,18 @@ def reboot(
 def stop(
     server_name,
     server_password,
-    server_type,
-    server_image,
-    server_location,
     labels,
 ) -> ServerInfo:
     info = _get_server_info()
-    if not os.path.isdir(terraform_directory):
-        print(f"Directory '{terraform_directory}' does not exist.")
-        exit(1)
-
-    os.chdir(terraform_directory)
+    _change_directory()
     apply_configuration(
-        info.server_name,
+        server_name,
         server_password,
         HCLOUD_TOKEN,
-        '',
-        '',
-        '',
-        info.labels,
+        _instance_type,
+        _image_name,
+        _location,
+        labels,
         server_action='poweroff',
     )
     # wait for server to be up again
@@ -272,23 +238,17 @@ def stop(
 def start(
     server_name,
     server_password,
-    server_type,
-    server_image,
-    server_location,
     labels,
 ) -> ServerInfo:
-    if not os.path.isdir(terraform_directory):
-        print(f"Directory '{terraform_directory}' does not exist.")
-        exit(1)
-
-    os.chdir(terraform_directory)
+    _change_directory()
+    info = _get_server_info()
     apply_configuration(
         server_name,
         server_password,
         HCLOUD_TOKEN,
-        server_type,
-        server_image,
-        server_location,
+        _instance_type,
+        _image_name,
+        _location,
         labels,
         server_action='poweron',
     )
@@ -300,23 +260,17 @@ def start(
 def reset_pw(
     server_name,
     server_password,
-    server_type,
-    server_image,
-    server_location,
     labels,
 ) -> ServerPasswordResetInfo:
-    if not os.path.isdir(terraform_directory):
-        print(f"Directory '{terraform_directory}' does not exist.")
-        exit(1)
-
-    os.chdir(terraform_directory)
+    _change_directory()
+    info = _get_server_info()
     apply_configuration(
         server_name,
         server_password,
         HCLOUD_TOKEN,
-        server_type,
-        server_image,
-        server_location,
+        _instance_type,
+        _image_name,
+        _location,
         labels,
         server_action=None,
         server_password_reset=True,
@@ -327,30 +281,26 @@ def reset_pw(
 
 
 def destroy(
+    server_id,
     server_name,
     server_password,
-    server_type,
-    server_image,
-    server_location,
-    labels,
+    labels
 ) -> ServerDeletedInfo:
-    if not os.path.isdir(terraform_directory):
-        print(f"Directory '{terraform_directory}' does not exist.")
-        exit(1)
-
-    os.chdir(terraform_directory)
+    _change_directory()
     apply_configuration(
         server_name,
         server_password,
         HCLOUD_TOKEN,
-        server_type,
-        server_image,
-        server_location,
+        _instance_type,
+        _image_name,
+        _location,
         labels,
         server_action=None,
+        destroy="destroy"
     )
     sleep(30)
-    return ServerDeletedInfo(deleted=True)
+    return ServerDeletedInfo(deleted=True,server_id=server_id, )
+    
 
 
 class ServerTypeTerraform(
@@ -360,9 +310,9 @@ class ServerTypeTerraform(
     StartServerMixin,
     ServerTypeBase,
 ):
-    server_variant: str = ''
-    location: str = _server_location
-    instance_type = _server_type
+    server_variant: str = 'Linux'
+    location: str =_location
+    instance_type = _instance_type
     image_name: str = _image_name
 
     def create_instance(
@@ -376,10 +326,7 @@ class ServerTypeTerraform(
         username = server_instance.user.username
         return create_terraform_server(
             server_variant=self.server_variant,
-            instance_type=self.instance_type,
             username=username,
-            image_name=self.image_name,
-            location=self.location,
             description=server_instance.server_type.description or '',
         )
 
@@ -387,66 +334,69 @@ class ServerTypeTerraform(
         self, model_instance_id: str, *args, **kwargs
     ) -> ServerInfo:
         instance = self.get_server_instance(model_instance_id)
-        return status()
+        return status(instance.server_id)
 
     def reset_password(
         self, model_instance_id, *args, **kwargs
     ) -> ServerPasswordResetInfo:
         instance = self.get_server_instance(model_instance_id)
+        info = _get_server_info()
         return reset_pw(
             instance.server_name,
             instance.server_password,
-            _server_type,
-            _image_name,
-            _server_location,
-            None,
+            info.labels,
         )
 
     def start_server(self, model_instance_id, *args, **kwargs) -> ServerInfo:
         instance = self.get_server_instance(model_instance_id)
+        info = _get_server_info()
         return start(
             instance.server_name,
             instance.server_password,
-            _server_type,
-            _image_name,
-            _server_location,
-            None,
+            info.labels,
         )
 
     def restart_server(self, model_instance_id, *args, **kwargs) -> ServerInfo:
         instance = self.get_server_instance(model_instance_id)
+        info = _get_server_info()
         return reboot(
             instance.server_name,
             instance.server_password,
-            _server_type,
-            _image_name,
-            _server_location,
-            None,
+            info.labels,
         )
 
     def stop_server(self, model_instance_id, *args, **kwargs) -> ServerInfo:
         instance = self.get_server_instance(model_instance_id)
+        info = _get_server_info()
         return stop(
             instance.server_name,
             instance.server_password,
-            _server_type,
-            _image_name,
-            _server_location,
-            None,
+            info.labels,
         )
 
     def delete_server(
         self, model_instance_id, *args, **kwargs
     ) -> ServerDeletedInfo:
         instance = self.get_server_instance(model_instance_id)
+        info = _get_server_info()
         deleted = False
         # try once again before bailing out
         try:
-            destroy(instance.server_id)
+            destroy(
+                instance.server_id,
+                instance.server_name,
+                instance.server_password,
+                info.labels
+            )
             deleted = True
         except APIException:
             try:
-                destroy(instance.server_id)
+                destroy(
+                    instance.server_id,
+                    instance.server_name,
+                    instance.server_password,
+                    info.labels
+                )
                 deleted = True
             except APIException:
                 logger.exception(
